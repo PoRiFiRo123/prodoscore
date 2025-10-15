@@ -14,16 +14,311 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      criteria: {
+        Row: {
+          created_at: string
+          display_order: number | null
+          id: string
+          max_score: number
+          name: string
+          track_id: string | null
+          weightage: number | null
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          max_score: number
+          name: string
+          track_id?: string | null
+          weightage?: number | null
+        }
+        Update: {
+          created_at?: string
+          display_order?: number | null
+          id?: string
+          max_score?: number
+          name?: string
+          track_id?: string | null
+          weightage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "criteria_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      judge_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          judge_id: string
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          judge_id: string
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          judge_id?: string
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "judge_assignments_judge_id_fkey"
+            columns: ["judge_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "judge_assignments_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      rooms: {
+        Row: {
+          created_at: string
+          id: string
+          is_locked: boolean | null
+          name: string
+          track_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_locked?: boolean | null
+          name: string
+          track_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_locked?: boolean | null
+          name?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scores: {
+        Row: {
+          comment: string | null
+          created_at: string
+          criterion_id: string
+          id: string
+          judge_id: string
+          score: number
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          criterion_id: string
+          id?: string
+          judge_id: string
+          score: number
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          criterion_id?: string
+          id?: string
+          judge_id?: string
+          score?: number
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scores_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scores_judge_id_fkey"
+            columns: ["judge_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scores_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          college: string | null
+          created_at: string
+          id: string
+          members: string[] | null
+          name: string
+          room_id: string
+          team_number: string
+          total_score: number | null
+          track_id: string
+        }
+        Insert: {
+          college?: string | null
+          created_at?: string
+          id?: string
+          members?: string[] | null
+          name: string
+          room_id: string
+          team_number: string
+          total_score?: number | null
+          track_id: string
+        }
+        Update: {
+          college?: string | null
+          created_at?: string
+          id?: string
+          members?: string[] | null
+          name?: string
+          room_id?: string
+          team_number?: string
+          total_score?: number | null
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tracks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_team_score: {
+        Args: { _team_id: string }
+        Returns: number
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "judge"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +445,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "judge"],
+    },
   },
 } as const
