@@ -21,7 +21,9 @@ export type Database = {
           id: string
           max_score: number
           name: string
+          options: Json | null
           track_id: string | null
+          type: string
           weightage: number | null
         }
         Insert: {
@@ -30,7 +32,9 @@ export type Database = {
           id?: string
           max_score: number
           name: string
+          options?: Json | null
           track_id?: string | null
+          type?: string
           weightage?: number | null
         }
         Update: {
@@ -39,7 +43,9 @@ export type Database = {
           id?: string
           max_score?: number
           name?: string
+          options?: Json | null
           track_id?: string | null
+          type?: string
           weightage?: number | null
         }
         Relationships: [

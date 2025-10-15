@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -19,6 +20,8 @@ interface Criterion {
   id: string;
   name: string;
   max_score: number;
+  type: 'text' | 'dropdown';
+  options: { label: string; score: number }[] | null;
 }
 
 interface JudgeScoringProps {
@@ -59,10 +62,10 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
   const fetchCriteria = async () => {
     const { data } = await supabase
       .from("criteria")
-      .select("id, name, max_score")
+      .select("id, name, max_score, type, options")
       .order("display_order");
 
-    setCriteria(data || []);
+    setCriteria((data as any) || []);
   };
 
   const loadExistingScores = async () => {
@@ -180,20 +183,42 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
         <CardContent className="space-y-6">
           {criteria.map((criterion) => (
             <div key={criterion.id} className="space-y-2">
-              <Label htmlFor={criterion.id}>
-                {criterion.name} (Max: {criterion.max_score})
-              </Label>
-              <Input
-                id={criterion.id}
-                type="number"
-                min="0"
-                max={criterion.max_score}
-                step="0.5"
-                value={scores[criterion.id] || 0}
-                onChange={(e) =>
-                  setScores({ ...scores, [criterion.id]: Number(e.target.value) })
-                }
-              />
+              <Label htmlFor={criterion.id}>{criterion.name}</Label>
+              
+              {criterion.type === "text" ? (
+                <div className="space-y-1">
+                  <Input
+                    id={criterion.id}
+                    type="number"
+                    min="0"
+                    max={criterion.max_score}
+                    step="0.5"
+                    value={scores[criterion.id] || 0}
+                    onChange={(e) =>
+                      setScores({ ...scores, [criterion.id]: Number(e.target.value) })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">Max: {criterion.max_score}</p>
+                </div>
+              ) : (
+                <Select
+                  value={scores[criterion.id]?.toString() || ""}
+                  onValueChange={(value) =>
+                    setScores({ ...scores, [criterion.id]: Number(value) })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {criterion.options?.map((option, idx) => (
+                      <SelectItem key={idx} value={option.score.toString()}>
+                        {option.label} ({option.score} points)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           ))}
 
