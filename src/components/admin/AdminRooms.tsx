@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Lock, Unlock } from "lucide-react";
+import { Plus, Trash2, Lock, Unlock, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Room {
@@ -15,6 +15,7 @@ interface Room {
   name: string;
   track_id: string;
   is_locked: boolean;
+  passcode: string | null;
   tracks: { name: string };
 }
 
@@ -28,7 +29,8 @@ const AdminRooms = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [open, setOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: "", track_id: "" });
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [formData, setFormData] = useState({ name: "", track_id: "", passcode: "" });
 
   useEffect(() => {
     fetchTracks();
@@ -60,23 +62,57 @@ const AdminRooms = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const { error } = await supabase.from("rooms").insert([formData]);
+    if (editingRoom) {
+      const { error } = await supabase
+        .from("rooms")
+        .update(formData)
+        .eq("id", editingRoom.id);
 
-    if (error) {
-      toast({
-        title: "Error creating room",
-        description: error.message,
-        variant: "destructive",
-      });
+      if (error) {
+        toast({
+          title: "Error updating room",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Room updated",
+          description: "Room has been updated successfully.",
+        });
+        fetchRooms();
+        setOpen(false);
+        setEditingRoom(null);
+        setFormData({ name: "", track_id: "", passcode: "" });
+      }
     } else {
-      toast({
-        title: "Room created",
-        description: "New room has been created successfully.",
-      });
-      fetchRooms();
-      setOpen(false);
-      setFormData({ name: "", track_id: "" });
+      const { error } = await supabase.from("rooms").insert([formData]);
+
+      if (error) {
+        toast({
+          title: "Error creating room",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Room created",
+          description: "New room has been created successfully.",
+        });
+        fetchRooms();
+        setOpen(false);
+        setFormData({ name: "", track_id: "", passcode: "" });
+      }
     }
+  };
+
+  const handleEdit = (room: Room) => {
+    setEditingRoom(room);
+    setFormData({
+      name: room.name,
+      track_id: room.track_id,
+      passcode: room.passcode || "",
+    });
+    setOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -129,7 +165,13 @@ const AdminRooms = () => {
           <h2 className="text-2xl font-bold">Rooms</h2>
           <p className="text-muted-foreground">Manage evaluation rooms</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(val) => {
+          setOpen(val);
+          if (!val) {
+            setEditingRoom(null);
+            setFormData({ name: "", track_id: "", passcode: "" });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
@@ -138,8 +180,10 @@ const AdminRooms = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Room</DialogTitle>
-              <DialogDescription>Add a new evaluation room</DialogDescription>
+              <DialogTitle>{editingRoom ? "Edit Room" : "Create Room"}</DialogTitle>
+              <DialogDescription>
+                {editingRoom ? "Update room details" : "Add a new evaluation room"}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -171,11 +215,24 @@ const AdminRooms = () => {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="passcode">Room Passcode</Label>
+                <Input
+                  id="passcode"
+                  value={formData.passcode}
+                  onChange={(e) => setFormData({ ...formData, passcode: e.target.value })}
+                  placeholder="e.g., ROOM123"
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Judges will use this passcode to access the room
+                </p>
+              </div>
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">Create</Button>
+                <Button type="submit">{editingRoom ? "Update" : "Create"}</Button>
               </div>
             </form>
           </DialogContent>
@@ -198,17 +255,30 @@ const AdminRooms = () => {
                     )}
                   </div>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleDelete(room.id)}
-                >
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEdit(room)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(room.id)}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
               </CardTitle>
               <CardDescription>{room.tracks.name}</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-2">
+              <div className="text-sm">
+                <span className="text-muted-foreground">Passcode: </span>
+                <code className="bg-secondary px-2 py-1 rounded">{room.passcode || "Not set"}</code>
+              </div>
               <Button
                 variant={room.is_locked ? "outline" : "secondary"}
                 size="sm"

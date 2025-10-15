@@ -124,6 +124,7 @@ export type Database = {
           id: string
           is_locked: boolean | null
           name: string
+          passcode: string | null
           track_id: string
         }
         Insert: {
@@ -131,6 +132,7 @@ export type Database = {
           id?: string
           is_locked?: boolean | null
           name: string
+          passcode?: string | null
           track_id: string
         }
         Update: {
@@ -138,6 +140,7 @@ export type Database = {
           id?: string
           is_locked?: boolean | null
           name?: string
+          passcode?: string | null
           track_id?: string
         }
         Relationships: [
@@ -156,7 +159,8 @@ export type Database = {
           created_at: string
           criterion_id: string
           id: string
-          judge_id: string
+          judge_id: string | null
+          judge_name: string | null
           score: number
           team_id: string
           updated_at: string
@@ -166,7 +170,8 @@ export type Database = {
           created_at?: string
           criterion_id: string
           id?: string
-          judge_id: string
+          judge_id?: string | null
+          judge_name?: string | null
           score: number
           team_id: string
           updated_at?: string
@@ -176,7 +181,8 @@ export type Database = {
           created_at?: string
           criterion_id?: string
           id?: string
-          judge_id?: string
+          judge_id?: string | null
+          judge_name?: string | null
           score?: number
           team_id?: string
           updated_at?: string

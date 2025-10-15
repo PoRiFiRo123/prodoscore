@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Award } from "lucide-react";
+import TeamDetailDialog from "./TeamDetailDialog";
 
 interface Team {
   id: string;
@@ -35,6 +36,8 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<string>("all");
   const [selectedRoom, setSelectedRoom] = useState<string>("all");
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [selectedTeamName, setSelectedTeamName] = useState<string>("");
 
   useEffect(() => {
     fetchTracks();
@@ -135,7 +138,17 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <>
+      <TeamDetailDialog
+        teamId={selectedTeamId}
+        teamName={selectedTeamName}
+        onClose={() => {
+          setSelectedTeamId(null);
+          setSelectedTeamName("");
+        }}
+      />
+      
+      <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Leaderboard</h2>
@@ -195,7 +208,11 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
               {teams.map((team, index) => (
                 <TableRow
                   key={team.id}
-                  className={index < 3 ? "bg-muted/50" : ""}
+                  className={`${index < 3 ? "bg-muted/50" : ""} cursor-pointer hover:bg-accent/50 transition-colors`}
+                  onClick={() => {
+                    setSelectedTeamId(team.id);
+                    setSelectedTeamName(team.name);
+                  }}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -226,7 +243,8 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
           )}
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 };
 

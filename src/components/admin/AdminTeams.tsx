@@ -88,7 +88,24 @@ const AdminTeams = () => {
         variant: "destructive",
       });
     } else {
-      setTeams(data || []);
+      // Calculate scores for each team
+      const teamsWithScores = await Promise.all(
+        (data || []).map(async (team) => {
+          const { data: scores } = await supabase
+            .from("scores")
+            .select("score")
+            .eq("team_id", team.id);
+
+          const totalScore = scores?.reduce((sum, s) => sum + Number(s.score), 0) || 0;
+
+          return {
+            ...team,
+            total_score: totalScore,
+          };
+        })
+      );
+      
+      setTeams(teamsWithScores);
     }
   };
 

@@ -26,10 +26,10 @@ interface Criterion {
 
 interface JudgeScoringProps {
   roomId: string;
-  onBack: () => void;
+  judgeName: string;
 }
 
-const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
+const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
   const { toast } = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
@@ -60,9 +60,20 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
   };
 
   const fetchCriteria = async () => {
+    // Fetch room details to get track_id
+    const { data: roomData } = await supabase
+      .from("rooms")
+      .select("track_id")
+      .eq("id", roomId)
+      .single();
+
+    if (!roomData) return;
+
+    // Fetch criteria for this track
     const { data } = await supabase
       .from("criteria")
       .select("id, name, max_score, type, options")
+      .eq("track_id", roomData.track_id)
       .order("display_order");
 
     setCriteria((data as any) || []);
@@ -71,16 +82,13 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
   const loadExistingScores = async () => {
     if (!selectedTeam) return;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
     const { data } = await supabase
       .from("scores")
       .select("criterion_id, score, comment")
       .eq("team_id", selectedTeam.id)
-      .eq("judge_id", session.user.id);
+      .eq("judge_name", judgeName);
 
-    if (data) {
+    if (data && data.length > 0) {
       const scoresMap: Record<string, number> = {};
       data.forEach((s) => {
         scoresMap[s.criterion_id] = Number(s.score);
@@ -93,25 +101,30 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
   const handleSaveScores = async () => {
     if (!selectedTeam) return;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
     setSaving(true);
 
     try {
+      // Delete existing scores for this judge and team
+      await supabase
+        .from("scores")
+        .delete()
+        .eq("team_id", selectedTeam.id)
+        .eq("judge_name", judgeName);
+
+      // Insert new scores
       const scoreEntries = criteria.map((criterion) => ({
         team_id: selectedTeam.id,
-        judge_id: session.user.id,
+        judge_name: judgeName,
         criterion_id: criterion.id,
         score: scores[criterion.id] || 0,
         comment: comment,
       }));
 
-      for (const entry of scoreEntries) {
-        await supabase
-          .from("scores")
-          .upsert(entry, { onConflict: "team_id,judge_id,criterion_id" });
-      }
+      const { error } = await supabase
+        .from("scores")
+        .insert(scoreEntries);
+
+      if (error) throw error;
 
       toast({
         title: "Scores saved",
@@ -134,30 +147,30 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
 
   if (!selectedTeam) {
     return (
-      <div className="space-y-4">
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Rooms
-        </Button>
-
-        <div>
-          <h2 className="text-2xl font-bold">Select a Team</h2>
-          <p className="text-muted-foreground">Choose a team to evaluate</p>
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Select a Team
+          </h2>
+          <p className="text-muted-foreground mt-2">Choose a team to begin evaluation</p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {teams.map((team) => (
             <Card
               key={team.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
+              className="group hover:shadow-lg hover:shadow-primary/20 transition-all duration-300 cursor-pointer border-2 hover:border-primary/50"
               onClick={() => setSelectedTeam(team)}
             >
-              <CardHeader>
-                <CardTitle>{team.name}</CardTitle>
-                <CardDescription>{team.team_number}</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="group-hover:text-primary transition-colors">
+                  {team.name}
+                </CardTitle>
+                <CardDescription className="font-semibold">{team.team_number}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                  <span className="w-2 h-2 bg-accent rounded-full" />
                   {team.members?.length || 0} members
                 </p>
               </CardContent>
@@ -169,24 +182,26 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
   }
 
   return (
-    <div className="space-y-4">
-      <Button variant="outline" onClick={() => setSelectedTeam(null)}>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      <Button variant="outline" onClick={() => setSelectedTeam(null)} className="mb-4">
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Team List
+        Back to Teams
       </Button>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Evaluating: {selectedTeam.name}</CardTitle>
-          <CardDescription>{selectedTeam.team_number}</CardDescription>
+      <Card className="border-2 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
+          <CardTitle className="text-2xl">Evaluating: {selectedTeam.name}</CardTitle>
+          <CardDescription className="text-base">{selectedTeam.team_number}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 pt-6">
           {criteria.map((criterion) => (
-            <div key={criterion.id} className="space-y-2">
-              <Label htmlFor={criterion.id}>{criterion.name}</Label>
+            <div key={criterion.id} className="space-y-3 p-4 rounded-lg bg-secondary/30 border">
+              <Label htmlFor={criterion.id} className="text-base font-semibold">
+                {criterion.name}
+              </Label>
               
               {criterion.type === "text" ? (
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <Input
                     id={criterion.id}
                     type="number"
@@ -197,8 +212,9 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
                     onChange={(e) =>
                       setScores({ ...scores, [criterion.id]: Number(e.target.value) })
                     }
+                    className="text-lg"
                   />
-                  <p className="text-xs text-muted-foreground">Max: {criterion.max_score}</p>
+                  <p className="text-sm text-muted-foreground">Maximum: {criterion.max_score} points</p>
                 </div>
               ) : (
                 <Select
@@ -207,7 +223,7 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
                     setScores({ ...scores, [criterion.id]: Number(value) })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="text-lg">
                     <SelectValue placeholder="Select an option" />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,19 +238,25 @@ const JudgeScoring = ({ roomId, onBack }: JudgeScoringProps) => {
             </div>
           ))}
 
-          <div className="space-y-2">
-            <Label htmlFor="comment">Comments (Optional)</Label>
+          <div className="space-y-3 p-4 rounded-lg bg-secondary/30 border">
+            <Label htmlFor="comment" className="text-base font-semibold">Comments (Optional)</Label>
             <Textarea
               id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="Add your feedback here..."
-              rows={4}
+              placeholder="Add your feedback and observations here..."
+              rows={5}
+              className="resize-none"
             />
           </div>
 
-          <Button onClick={handleSaveScores} disabled={saving} className="w-full">
-            {saving ? "Saving..." : <><Save className="h-4 w-4 mr-2" /> Save Evaluation</>}
+          <Button 
+            onClick={handleSaveScores} 
+            disabled={saving} 
+            className="w-full h-12 text-lg font-semibold"
+            size="lg"
+          >
+            {saving ? "Saving..." : <><Save className="h-5 w-5 mr-2" /> Save Evaluation</>}
           </Button>
         </CardContent>
       </Card>
