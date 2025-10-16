@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Trophy, Users, CheckCircle2 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface Team {
   id: string;
@@ -20,20 +21,73 @@ interface LiveTeamStatsProps {
 const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
   const [teams, setTeams] = useState<Team[]>([]);
 
+  const fetchTeamStats = useCallback(async () => {
+    // Fetch teams in the room
+    const { data: teamsData } = await supabase
+      .from("teams")
+      .select("id, name, team_number")
+      .eq("room_id", roomId)
+      .order("team_number");
+
+    if (!teamsData) return;
+
+    // Fetch judge count for the room
+    const { count: totalJudges } = await supabase
+      .from("judge_assignments")
+      .select("judge_id", { count: "exact", head: true })
+      .eq("room_id", roomId);
+
+    // Fetch score counts and calculate average score for each team
+    const teamsWithStats = await Promise.all(
+      teamsData.map(async (team) => {
+        const { data: scoresData } = await supabase
+          .from("scores")
+          .select("judge_id, score")
+          .eq("team_id", team.id);
+
+        const scoresByJudge = new Map<string, number>();
+        if (scoresData) {
+          for (const s of scoresData) {
+            if (s.judge_id && typeof s.score === 'number') {
+              scoresByJudge.set(
+                s.judge_id,
+                (scoresByJudge.get(s.judge_id) || 0) + s.score
+              );
+            }
+          }
+        }
+
+        const totalScoreFromAllJudges = Array.from(
+          scoresByJudge.values()
+        ).reduce((sum, score) => sum + score, 0);
+        const scoredByJudgesCount = scoresByJudge.size;
+
+        const averageScore =
+          scoredByJudgesCount > 0
+            ? totalScoreFromAllJudges / scoredByJudgesCount
+            : 0;
+
+        return {
+          ...team,
+          total_score: averageScore,
+          scored_count: scoredByJudgesCount,
+          total_judges: totalJudges || 0,
+        };
+      })
+    );
+
+    setTeams(teamsWithStats);
+  }, [roomId]);
+
   useEffect(() => {
     fetchTeamStats();
 
-    // Subscribe to real-time updates
     const channel = supabase
-      .channel("team-scores-updates")
+      .channel(`team-stats-${roomId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "scores",
-        },
-        () => {
+        { event: "*", schema: "public", table: "scores" },
+        (payload) => {
           fetchTeamStats();
         }
       )
@@ -42,49 +96,7 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [roomId]);
-
-  const fetchTeamStats = async () => {
-    // Fetch teams in the room
-    const { data: teamsData } = await supabase
-      .from("teams")
-      .select("id, name, team_number, total_score")
-      .eq("room_id", roomId)
-      .order("team_number");
-
-    if (!teamsData) return;
-
-    // Fetch judge count for the room
-    const { data: judgesData } = await supabase
-      .from("judge_assignments")
-      .select("judge_id")
-      .eq("room_id", roomId);
-
-    const totalJudges = judgesData?.length || 0;
-
-    // Fetch score counts for each team
-    const teamsWithStats = await Promise.all(
-      teamsData.map(async (team) => {
-        const { data: scoresData } = await supabase
-          .from("scores")
-          .select("judge_name")
-          .eq("team_id", team.id);
-
-        // Count unique judges who have scored
-        const uniqueJudges = new Set(
-          scoresData?.map((s) => s.judge_name).filter(Boolean)
-        );
-
-        return {
-          ...team,
-          scored_count: uniqueJudges.size,
-          total_judges: totalJudges,
-        };
-      })
-    );
-
-    setTeams(teamsWithStats);
-  };
+  }, [roomId, fetchTeamStats]);
 
   return (
     <Card className="mb-6 border-2">
@@ -101,7 +113,8 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
               team.total_judges > 0
                 ? (team.scored_count / team.total_judges) * 100
                 : 0;
-            const isComplete = team.scored_count === team.total_judges && team.total_judges > 0;
+            const isComplete =
+              team.scored_count === team.total_judges && team.total_judges > 0;
 
             return (
               <div
@@ -111,18 +124,21 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs font-mono">
                         {team.team_number}
                       </Badge>
                       {isComplete && (
-                        <CheckCircle2 className="h-4 w-4 text-success" />
+                        <Badge variant="success" className="gap-1">
+                          <CheckCircle2 className="h-3 w-3" />
+                          Done
+                        </Badge>
                       )}
                     </div>
                     <h4 className="font-semibold mt-1">{team.name}</h4>
                   </div>
                   <Trophy className="h-5 w-5 text-accent opacity-50" />
                 </div>
-                
+
                 <div className="space-y-2">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Progress</span>
@@ -130,19 +146,18 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
                       {team.scored_count}/{team.total_judges} judges
                     </span>
                   </div>
-                  
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        isComplete ? "bg-success" : "bg-primary"
-                      }`}
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                  
+
+                  <Progress
+                    value={progress}
+                    className="h-2"
+                    indicatorClassName={
+                      isComplete ? "bg-success" : "bg-primary"
+                    }
+                  />
+
                   <div className="flex justify-between items-center text-sm pt-1">
-                    <span className="text-muted-foreground">Current Score</span>
-                    <span className="font-bold text-primary">
+                    <span className="text-muted-foreground">Avg. Score</span>
+                    <span className="font-bold text-primary text-lg">
                       {team.total_score?.toFixed(2) || "0.00"}
                     </span>
                   </div>

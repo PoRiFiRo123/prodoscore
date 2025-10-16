@@ -181,20 +181,14 @@ const Dashboard = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
-                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
-                  <rect width="100" height="100" rx="20" fill="hsl(var(--primary))" />
-                  <text x="50" y="70" fontSize="60" fontWeight="bold" fill="white" textAnchor="middle">B</text>
-                </svg>
+                <img src="/bnmit.svg" alt="BNMIT Logo" className="h-12 w-auto" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">BNM Institute of Technology</p>
                   <p className="text-xs text-muted-foreground">Academic Excellence</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
-                  <rect width="100" height="100" rx="20" fill="hsl(var(--accent))" />
-                  <text x="50" y="70" fontSize="50" fontWeight="bold" fill="white" textAnchor="middle">EMC</text>
-                </svg>
+                <img src="/logo.svg" alt="EMC Logo" className="h-12 w-12" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">Event Management Committee</p>
                   <p className="text-xs text-muted-foreground">Prodothon Organizers</p>
@@ -205,7 +199,10 @@ const Dashboard = () => {
               <p className="text-sm text-muted-foreground">
                 Developed by <span className="font-semibold text-foreground">Nishit R Kirani</span>
               </p>
-              <p className="text-xs text-muted-foreground">BNMIT © 2025</p>
+              <div className="flex items-center justify-center md:justify-end">
+                <img src="/bnmit.svg" alt="BNMIT Logo" className="h-6 w-auto mr-2" />
+                <p className="text-xs text-muted-foreground">© 2025</p>
+              </div>
             </div>
           </div>
         </div>
