@@ -139,7 +139,10 @@ const Judge = () => {
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <button 
+              onClick={() => window.location.href = "/"}
+              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent rounded-full blur-md opacity-50" />
                 <Trophy className="h-8 w-8 text-primary relative z-10" />
@@ -155,7 +158,7 @@ const Judge = () => {
                   Team Evaluation System
                 </p>
               </div>
-            </div>
+            </button>
             {room && judgeName && (
               <div className="flex items-center gap-4">
                 <div className="text-right">
@@ -253,14 +256,35 @@ const Judge = () => {
       {/* Footer */}
       <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
         <div className="container mx-auto px-4 py-6">
-          <div className="text-center space-y-2">
-            <p className="text-sm text-muted-foreground">
-              This website is made by <span className="font-semibold text-foreground">Nishit R Kirani</span> from{" "}
-              <span className="font-semibold text-foreground">BNM Institute of Technology</span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Event Management Committee (EMC) is responsible for Prodothon
-            </p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
+                  <rect width="100" height="100" rx="20" fill="hsl(var(--primary))" />
+                  <text x="50" y="70" fontSize="60" fontWeight="bold" fill="white" textAnchor="middle">B</text>
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">BNM Institute of Technology</p>
+                  <p className="text-xs text-muted-foreground">Academic Excellence</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
+                  <rect width="100" height="100" rx="20" fill="hsl(var(--accent))" />
+                  <text x="50" y="70" fontSize="50" fontWeight="bold" fill="white" textAnchor="middle">EMC</text>
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Event Management Committee</p>
+                  <p className="text-xs text-muted-foreground">Prodothon Organizers</p>
+                </div>
+              </div>
+            </div>
+            <div className="text-center md:text-right">
+              <p className="text-sm text-muted-foreground">
+                Developed by <span className="font-semibold text-foreground">Nishit R Kirani</span>
+              </p>
+              <p className="text-xs text-muted-foreground">BNMIT © 2025</p>
+            </div>
           </div>
         </div>
       </footer>

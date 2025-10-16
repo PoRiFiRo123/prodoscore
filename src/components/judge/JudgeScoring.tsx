@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import LiveTeamStats from "./LiveTeamStats";
 
 interface Team {
   id: string;
@@ -197,6 +198,8 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
   if (!selectedTeam) {
     return (
       <div className="space-y-6">
+        <LiveTeamStats roomId={roomId} />
+        
         <div className="text-center">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             Select a Team
@@ -302,9 +305,13 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
                           : "Select an option"}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
+                    <SelectContent className="bg-popover border-border z-[100]">
                       {criterion.options?.map((option, idx) => (
-                        <SelectItem key={idx} value={idx.toString()}>
+                        <SelectItem 
+                          key={idx} 
+                          value={idx.toString()}
+                          className="cursor-pointer hover:bg-accent/10"
+                        >
                           {option.label} ({option.score} points)
                         </SelectItem>
                       ))}
