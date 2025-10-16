@@ -37,6 +37,29 @@ const Index = () => {
                 Professional hackathon judging and scoring platform
               </p>
             </div>
+            
+            <div className="flex flex-col md:flex-row items-center justify-center gap-8 mb-16">
+              <div className="flex items-center gap-2">
+                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
+                  <rect width="100" height="100" rx="20" fill="hsl(var(--primary))" />
+                  <text x="50" y="70" fontSize="60" fontWeight="bold" fill="white" textAnchor="middle">B</text>
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">BNM Institute of Technology</p>
+                  <p className="text-xs text-muted-foreground">Academic Excellence</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
+                  <rect width="100" height="100" rx="20" fill="hsl(var(--accent))" />
+                  <text x="50" y="70" fontSize="50" fontWeight="bold" fill="white" textAnchor="middle">EMC</text>
+                </svg>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Event Management Committee</p>
+                  <p className="text-xs text-muted-foreground">Prodothon Organizers</p>
+                </div>
+              </div>
+            </div>
 
             {/* Action Cards */}
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -120,30 +143,8 @@ const Index = () => {
       {/* Footer */}
       <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
-                  <rect width="100" height="100" rx="20" fill="hsl(var(--primary))" />
-                  <text x="50" y="70" fontSize="60" fontWeight="bold" fill="white" textAnchor="middle">B</text>
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">BNM Institute of Technology</p>
-                  <p className="text-xs text-muted-foreground">Academic Excellence</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="h-12 w-12" viewBox="0 0 100 100" fill="none">
-                  <rect width="100" height="100" rx="20" fill="hsl(var(--accent))" />
-                  <text x="50" y="70" fontSize="50" fontWeight="bold" fill="white" textAnchor="middle">EMC</text>
-                </svg>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Event Management Committee</p>
-                  <p className="text-xs text-muted-foreground">Prodothon Organizers</p>
-                </div>
-              </div>
-            </div>
-            <div className="text-center md:text-right">
+          <div className="flex items-center justify-center">
+            <div className="text-center">
               <p className="text-sm text-muted-foreground">
                 Developed by <span className="font-semibold text-foreground">Nishit R Kirani</span>
               </p>
