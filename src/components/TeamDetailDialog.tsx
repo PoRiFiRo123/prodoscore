@@ -61,8 +61,14 @@ const TeamDetailDialog = ({ teamId, teamName, onClose }: TeamDetailDialogProps) 
     return acc;
   }, {} as Record<string, ScoreDetail[]>);
 
-  // Calculate total score
-  const totalScore = scores.reduce((sum, s) => sum + Number(s.score), 0);
+  // Calculate average of judge's total scores
+  const judgeTotals = Object.values(scoresByJudge).map((judgeScores) =>
+    judgeScores.reduce((sum, s) => sum + Number(s.score), 0)
+  );
+
+  const averageTotalScore = judgeTotals.length > 0
+    ? judgeTotals.reduce((sum, total) => sum + total, 0) / judgeTotals.length
+    : 0;
 
   return (
     <Dialog open={!!teamId} onOpenChange={() => onClose()}>
@@ -78,11 +84,11 @@ const TeamDetailDialog = ({ teamId, teamName, onClose }: TeamDetailDialogProps) 
           {/* Total Score */}
           <Card>
             <CardHeader>
-              <CardTitle>Total Score</CardTitle>
+              <CardTitle>Total Score (Average of Judge Totals)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-4xl font-bold text-primary">
-                {totalScore.toFixed(1)} points
+                {averageTotalScore.toFixed(1)} points
               </div>
             </CardContent>
           </Card>

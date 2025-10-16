@@ -78,7 +78,7 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
   const fetchTeams = async () => {
     let query = supabase
       .from("teams")
-      .select("id, name, team_number, total_score, tracks(name), rooms(name)");
+      .select("id, name, team_number, tracks(name), rooms(name)");
 
     if (selectedTrack !== "all") {
       query = query.eq("track_id", selectedTrack);
@@ -88,29 +88,46 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
       query = query.eq("room_id", selectedRoom);
     }
 
-    const { data } = await query.order("total_score", { ascending: false });
+    const { data } = await query;
 
-    // Calculate scores dynamically
     if (data) {
-      const teamsWithScores = await Promise.all(
+      const teamsWithAverageScores = await Promise.all(
         data.map(async (team) => {
-          const { data: scores } = await supabase
+          // Fetch all scores for the team, including judge_id
+          const { data: scoresData, error: scoresError } = await supabase
             .from("scores")
-            .select("score")
+            .select("judge_id, score")
             .eq("team_id", team.id);
 
-          const totalScore = scores?.reduce((sum, s) => sum + Number(s.score), 0) || 0;
+          if (scoresError) {
+            console.error("Error fetching scores for team", team.id, ":", scoresError);
+            return { ...team, total_score: 0 };
+          }
+
+          // Calculate total score per judge
+          const judgeScores = new Map<string, number>();
+          scoresData?.forEach((s) => {
+            if (s.judge_id) {
+              judgeScores.set(s.judge_id, (judgeScores.get(s.judge_id) || 0) + Number(s.score));
+            }
+          });
+
+          // Sum the scores from each unique judge
+          const totalSumOfJudgeScores = Array.from(judgeScores.values()).reduce((sum, score) => sum + score, 0);
+          const numberOfJudgesWhoScored = judgeScores.size;
+
+          const averageScore = numberOfJudgesWhoScored > 0 ? totalSumOfJudgeScores / numberOfJudgesWhoScored : 0;
 
           return {
             ...team,
-            total_score: totalScore,
+            total_score: averageScore,
           };
         })
       );
 
-      // Sort by total score
-      teamsWithScores.sort((a, b) => b.total_score - a.total_score);
-      setTeams(teamsWithScores);
+      // Sort by total_score (which is now average score)
+      teamsWithAverageScores.sort((a, b) => b.total_score - a.total_score);
+      setTeams(teamsWithAverageScores);
     }
   };
 

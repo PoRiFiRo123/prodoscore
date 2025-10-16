@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,11 +30,12 @@ interface Criterion {
 interface JudgeScoringProps {
   roomId: string;
   judgeName: string;
+  judgeId: string | null;
   selectedTeam: Team | null; // Added selectedTeam prop
   setSelectedTeam: (team: Team | null) => void; // Added setSelectedTeam prop
 }
 
-const JudgeScoring = ({ roomId, judgeName, selectedTeam, setSelectedTeam }: JudgeScoringProps) => {
+const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTeam }: JudgeScoringProps) => {
   const { toast } = useToast();
   const [teams, setTeams] = useState<Team[]>([]);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
@@ -49,10 +50,10 @@ const JudgeScoring = ({ roomId, judgeName, selectedTeam, setSelectedTeam }: Judg
   }, [roomId]);
 
   useEffect(() => {
-    if (selectedTeam) {
+    if (selectedTeam && judgeId) {
       loadExistingScores();
     }
-  }, [selectedTeam]);
+  }, [selectedTeam, judgeId]); // Added judgeId to dependencies
 
   useEffect(() => {
     if (!selectedTeam) {
@@ -126,13 +127,13 @@ const JudgeScoring = ({ roomId, judgeName, selectedTeam, setSelectedTeam }: Judg
   };
 
   const loadExistingScores = async () => {
-    if (!selectedTeam) return;
+    if (!selectedTeam || !judgeId) return;
 
     const { data } = await supabase
       .from("scores")
       .select("criterion_id, score, comment")
       .eq("team_id", selectedTeam.id)
-      .eq("judge_name", judgeName);
+      .eq("judge_id", judgeId); // Use judgeId here
 
     if (data && data.length > 0) {
       const scoresMap: Record<string, number> = {};
@@ -165,7 +166,7 @@ const JudgeScoring = ({ roomId, judgeName, selectedTeam, setSelectedTeam }: Judg
   };
 
   const handleSaveScores = async () => {
-    if (!selectedTeam) return;
+    if (!selectedTeam || !judgeId) return;
 
     setSaving(true);
 
@@ -174,14 +175,15 @@ const JudgeScoring = ({ roomId, judgeName, selectedTeam, setSelectedTeam }: Judg
         .from("scores")
         .delete()
         .eq("team_id", selectedTeam.id)
-        .eq("judge_name", judgeName);
+        .eq("judge_id", judgeId); // Use judgeId here
 
       const scoreEntries = criteria.map((criterion) => ({
         team_id: selectedTeam.id,
-        judge_name: judgeName,
+        judge_id: judgeId, // Use judgeId here
         criterion_id: criterion.id,
         score: scores[criterion.id] || 0,
         comment: comment,
+        judge_name: judgeName, // Still keep judge_name for display/denormalization if needed
       }));
 
       const { error } = await supabase.from("scores").insert(scoreEntries);
@@ -322,7 +324,7 @@ const JudgeScoring = ({ roomId, judgeName, selectedTeam, setSelectedTeam }: Judg
                     {criterion.type === "text" ? (
                       <div className="space-y-2">
                         <Input
-                          id={criterion.id}
+                          id="criterion.id"
                           type="number"
                           min="0"
                           max={criterion.max_score}

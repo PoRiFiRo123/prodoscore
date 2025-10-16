@@ -46,6 +46,7 @@ const Judge = () => {
   const [loading, setLoading] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [judgeName, setJudgeName] = useState("");
+  const [judgeId, setJudgeId] = useState<string | null>(null); // New state for judgeId
   const [room, setRoom] = useState<Room | null>(null);
   const [showNameInput, setShowNameInput] = useState(false);
   const [judges, setJudges] = useState<Judge[]>([]);
@@ -54,9 +55,12 @@ const Judge = () => {
   useEffect(() => {
     const savedRoom = sessionStorage.getItem("judge_room");
     const savedName = sessionStorage.getItem("judge_name");
-    if (savedRoom && savedName) {
+    const savedJudgeId = sessionStorage.getItem("judge_id"); // Retrieve judgeId
+
+    if (savedRoom && savedName && savedJudgeId) {
       setRoom(JSON.parse(savedRoom));
       setJudgeName(savedName);
+      setJudgeId(savedJudgeId);
     }
   }, []);
 
@@ -126,19 +130,32 @@ const Judge = () => {
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (judgeName.trim()) {
-      sessionStorage.setItem("judge_name", judgeName);
-      toast({
-        title: "Welcome!",
-        description: `Ready to evaluate teams, ${judgeName}`,
-      });
+      const selectedJudge = judges.find(judge => judge.full_name === judgeName);
+      if (selectedJudge) {
+        setJudgeId(selectedJudge.id);
+        sessionStorage.setItem("judge_name", judgeName);
+        sessionStorage.setItem("judge_id", selectedJudge.id); // Save judgeId
+        toast({
+          title: "Welcome!",
+          description: `Ready to evaluate teams, ${judgeName}`,
+        });
+      } else {
+        toast({
+          title: "Judge Not Found",
+          description: "Please select a valid judge name.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const handleExit = () => {
     sessionStorage.removeItem("judge_room");
     sessionStorage.removeItem("judge_name");
+    sessionStorage.removeItem("judge_id"); // Remove judgeId from session storage
     setRoom(null);
     setJudgeName("");
+    setJudgeId(null);
     setPasscode("");
     setShowNameInput(false);
     setSelectedTeam(null); // Reset selected team on exit
@@ -187,7 +204,7 @@ const Judge = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 pb-20 min-h-[calc(100vh-180px)]">
-        {!room || !judgeName ? (
+        {!room || !judgeName || !judgeId ? (
           <div className="max-w-md mx-auto mt-20">
             <Card className="border-2 shadow-xl">
               <CardHeader className="text-center space-y-2">
@@ -263,6 +280,7 @@ const Judge = () => {
           <JudgeScoring
             roomId={room.id}
             judgeName={judgeName}
+            judgeId={judgeId}
             selectedTeam={selectedTeam}
             setSelectedTeam={setSelectedTeam}
           />
