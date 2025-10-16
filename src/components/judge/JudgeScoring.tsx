@@ -20,7 +20,7 @@ interface Criterion {
   id: string;
   name: string;
   max_score: number;
-  type: 'text' | 'dropdown';
+  type: "text" | "dropdown";
   options: { label: string; score: number }[] | null;
 }
 
@@ -35,6 +35,7 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [scores, setScores] = useState<Record<string, number>>({});
+  const [dropdownSelections, setDropdownSelections] = useState<Record<string, string>>({});
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -49,6 +50,43 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
     }
   }, [selectedTeam]);
 
+  useEffect(() => {
+    if (!selectedTeam) {
+      if (Object.keys(dropdownSelections).length) {
+        setDropdownSelections({});
+      }
+      return;
+    }
+
+    if (!criteria.length) return;
+
+    const derivedSelections: Record<string, string> = {};
+
+    criteria.forEach((criterion) => {
+      if (criterion.type === "dropdown" && criterion.options) {
+        const score = scores[criterion.id];
+        const optionIndex = criterion.options.findIndex(
+          (option) => option.score === score
+        );
+
+        if (optionIndex !== -1) {
+          derivedSelections[criterion.id] = optionIndex.toString();
+        }
+      }
+    });
+
+    const currentKeys = Object.keys(dropdownSelections);
+    const derivedKeys = Object.keys(derivedSelections);
+
+    const hasChanges =
+      currentKeys.length !== derivedKeys.length ||
+      derivedKeys.some((key) => dropdownSelections[key] !== derivedSelections[key]);
+
+    if (hasChanges) {
+      setDropdownSelections(derivedSelections);
+    }
+  }, [criteria, dropdownSelections, scores, selectedTeam]);
+
   const fetchTeams = async () => {
     const { data } = await supabase
       .from("teams")
@@ -60,7 +98,6 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
   };
 
   const fetchCriteria = async () => {
-    // Fetch room details to get track_id
     const { data: roomData } = await supabase
       .from("rooms")
       .select("track_id")
@@ -69,7 +106,6 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
 
     if (!roomData) return;
 
-    // Fetch criteria for this track
     const { data } = await supabase
       .from("criteria")
       .select("id, name, max_score, type, options")
@@ -90,11 +126,27 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
 
     if (data && data.length > 0) {
       const scoresMap: Record<string, number> = {};
+      const dropdownMap: Record<string, string> = {};
+
       data.forEach((s) => {
         scoresMap[s.criterion_id] = Number(s.score);
         if (s.comment) setComment(s.comment);
       });
+
+      criteria.forEach((criterion) => {
+        if (criterion.type === "dropdown" && criterion.options) {
+          const optionIndex = criterion.options.findIndex(
+            (option) => option.score === scoresMap[criterion.id]
+          );
+
+          if (optionIndex !== -1) {
+            dropdownMap[criterion.id] = optionIndex.toString();
+          }
+        }
+      });
+
       setScores(scoresMap);
+      setDropdownSelections(dropdownMap);
     }
   };
 
@@ -104,14 +156,12 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
     setSaving(true);
 
     try {
-      // Delete existing scores for this judge and team
       await supabase
         .from("scores")
         .delete()
         .eq("team_id", selectedTeam.id)
         .eq("judge_name", judgeName);
 
-      // Insert new scores
       const scoreEntries = criteria.map((criterion) => ({
         team_id: selectedTeam.id,
         judge_name: judgeName,
@@ -120,9 +170,7 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
         comment: comment,
       }));
 
-      const { error } = await supabase
-        .from("scores")
-        .insert(scoreEntries);
+      const { error } = await supabase.from("scores").insert(scoreEntries);
 
       if (error) throw error;
 
@@ -133,6 +181,7 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
 
       setSelectedTeam(null);
       setScores({});
+      setDropdownSelections({});
       setComment("");
     } catch (error: any) {
       toast({
@@ -194,52 +243,82 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
           <CardDescription className="text-base">{selectedTeam.team_number}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          {criteria.map((criterion) => (
-            <div key={criterion.id} className="space-y-3 p-4 rounded-lg bg-secondary/30 border">
-              <Label htmlFor={criterion.id} className="text-base font-semibold">
-                {criterion.name}
-              </Label>
-              
-              {criterion.type === "text" ? (
-                <div className="space-y-2">
-                  <Input
-                    id={criterion.id}
-                    type="number"
-                    min="0"
-                    max={criterion.max_score}
-                    step="0.5"
-                    value={scores[criterion.id] || 0}
-                    onChange={(e) =>
-                      setScores({ ...scores, [criterion.id]: Number(e.target.value) })
-                    }
-                    className="text-lg"
-                  />
-                  <p className="text-sm text-muted-foreground">Maximum: {criterion.max_score} points</p>
-                </div>
-              ) : (
-                <Select
-                  value={scores[criterion.id]?.toString() || ""}
-                  onValueChange={(value) =>
-                    setScores({ ...scores, [criterion.id]: Number(value) })
-                  }
-                >
-                  <SelectTrigger className="text-lg">
-                    <SelectValue placeholder="Select an option" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {criterion.options?.map((option, idx) => (
-                      <SelectItem key={idx} value={option.score.toString()}>
-                        {option.label} ({option.score} points)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-          ))}
+          {criteria.map((criterion) => {
+            const selectedOption =
+              criterion.type === "dropdown" && dropdownSelections[criterion.id] !== undefined
+                ? criterion.options?.[Number(dropdownSelections[criterion.id])]
+                : null;
+
+            return (
+              <div key={criterion.id} className="space-y-3 p-4 rounded-lg bg-secondary/30 border">
+                <Label htmlFor={criterion.id} className="text-base font-semibold">
+                  {criterion.name}
+                </Label>
+
+                {criterion.type === "text" ? (
+                  <div className="space-y-2">
+                    <Input
+                      id={criterion.id}
+                      type="number"
+                      min="0"
+                      max={criterion.max_score}
+                      step="0.5"
+                      value={scores[criterion.id] || 0}
+                      onChange={(e) =>
+                        setScores({
+                          ...scores,
+                          [criterion.id]: Number(e.target.value),
+                        })
+                      }
+                      className="text-lg"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Maximum: {criterion.max_score} points
+                    </p>
+                  </div>
+                ) : (
+                  <Select
+                    value={dropdownSelections[criterion.id] || ""}
+                    onValueChange={(value) => {
+                      const option = criterion.options?.[Number(value)];
+
+                      setDropdownSelections({
+                        ...dropdownSelections,
+                        [criterion.id]: value,
+                      });
+
+                      if (option) {
+                        setScores({
+                          ...scores,
+                          [criterion.id]: option.score,
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="text-lg">
+                      <SelectValue>
+                        {selectedOption
+                          ? `${selectedOption.label} (${selectedOption.score} points)`
+                          : "Select an option"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {criterion.options?.map((option, idx) => (
+                        <SelectItem key={idx} value={idx.toString()}>
+                          {option.label} ({option.score} points)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            );
+          })}
 
           <div className="space-y-3 p-4 rounded-lg bg-secondary/30 border">
-            <Label htmlFor="comment" className="text-base font-semibold">Comments (Optional)</Label>
+            <Label htmlFor="comment" className="text-base font-semibold">
+              Comments (Optional)
+            </Label>
             <Textarea
               id="comment"
               value={comment}
@@ -250,9 +329,9 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
             />
           </div>
 
-          <Button 
-            onClick={handleSaveScores} 
-            disabled={saving} 
+          <Button
+            onClick={handleSaveScores}
+            disabled={saving}
             className="w-full h-12 text-lg font-semibold"
             size="lg"
           >

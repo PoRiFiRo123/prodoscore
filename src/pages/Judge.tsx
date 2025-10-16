@@ -1,9 +1,22 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Trophy, Award, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import JudgeScoring from "@/components/judge/JudgeScoring";
@@ -14,6 +27,11 @@ interface Room {
   track_id: string;
 }
 
+interface Judge {
+  id: string;
+  full_name: string;
+}
+
 const Judge = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -21,6 +39,7 @@ const Judge = () => {
   const [judgeName, setJudgeName] = useState("");
   const [room, setRoom] = useState<Room | null>(null);
   const [showNameInput, setShowNameInput] = useState(false);
+  const [judges, setJudges] = useState<Judge[]>([]);
 
   useEffect(() => {
     const savedRoom = sessionStorage.getItem("judge_room");
@@ -51,9 +70,38 @@ const Judge = () => {
         return;
       }
 
-      setRoom(data);
-      setShowNameInput(true);
-      sessionStorage.setItem("judge_room", JSON.stringify(data));
+      const { data: judgeAssignments, error: assignmentsError } =
+        await supabase
+          .from("judge_assignments")
+          .select("profiles(id, full_name)")
+          .eq("room_id", data.id);
+
+      if (assignmentsError) {
+        toast({
+          title: "Error fetching judges",
+          description: "Could not fetch judges for this room.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (judgeAssignments) {
+        const fetchedJudges = judgeAssignments
+          .map((j: any) => j.profiles)
+          .filter((p) => p);
+        if (fetchedJudges.length > 0) {
+          setJudges(fetchedJudges);
+          setRoom(data);
+          setShowNameInput(true);
+          sessionStorage.setItem("judge_room", JSON.stringify(data));
+        } else {
+          toast({
+            title: "No Judges Assigned",
+            description: "There are no judges assigned to this room.",
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -95,13 +143,17 @@ const Judge = () => {
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary to-accent rounded-full blur-md opacity-50" />
                 <Trophy className="h-8 w-8 text-primary relative z-10" />
-                <Award className="h-4 w-4 text-accent absolute -top-1 -right-1 z-10" />
+                <Award
+                  className="h-4 w-4 text-accent absolute -top-1 -right-1 z-10"
+                />
               </div>
               <div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
                   Judge Panel
                 </h1>
-                <p className="text-xs text-muted-foreground">Team Evaluation System</p>
+                <p className="text-xs text-muted-foreground">
+                  Team Evaluation System
+                </p>
               </div>
             </div>
             {room && judgeName && (
@@ -130,7 +182,9 @@ const Judge = () => {
                 </div>
                 <CardTitle className="text-2xl">Access Room</CardTitle>
                 <CardDescription>
-                  {!showNameInput ? "Enter the room passcode to continue" : "Enter your name to start evaluating"}
+                  {!showNameInput
+                    ? "Enter the room passcode to continue"
+                    : "Enter your name to start evaluating"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -148,7 +202,11 @@ const Judge = () => {
                         className="text-center text-lg tracking-wider"
                       />
                     </div>
-                    <Button type="submit" className="w-full" disabled={loading}>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={loading}
+                    >
                       {loading ? "Verifying..." : "Continue"}
                     </Button>
                   </form>
@@ -156,16 +214,30 @@ const Judge = () => {
                   <form onSubmit={handleNameSubmit} className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="judgeName">Your Name</Label>
-                      <Input
-                        id="judgeName"
-                        type="text"
+                      <Select
+                        onValueChange={(value) => setJudgeName(value)}
                         value={judgeName}
-                        onChange={(e) => setJudgeName(e.target.value)}
-                        placeholder="Enter your name"
-                        required
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your name" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {judges.map((judge) => (
+                            <SelectItem
+                              key={judge.id}
+                              value={judge.full_name}
+                            >
+                              {judge.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Button type="submit" className="w-full">
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={!judgeName}
+                    >
                       Start Evaluating
                     </Button>
                   </form>
