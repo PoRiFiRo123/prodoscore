@@ -313,10 +313,10 @@ const AdminTracks = () => {
                     setCriterionForm({ ...criterionForm, type: value })
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-popover">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-popover z-50">
                     <SelectItem value="text">Text (Manual Entry)</SelectItem>
                     <SelectItem value="dropdown">Dropdown (Predefined Options)</SelectItem>
                   </SelectContent>

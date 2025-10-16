@@ -295,14 +295,14 @@ const JudgeScoring = ({ roomId, judgeName }: JudgeScoringProps) => {
                       }
                     }}
                   >
-                    <SelectTrigger className="text-lg">
+                    <SelectTrigger className="text-lg bg-popover">
                       <SelectValue>
                         {selectedOption
                           ? `${selectedOption.label} (${selectedOption.score} points)`
                           : "Select an option"}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover z-50">
                       {criterion.options?.map((option, idx) => (
                         <SelectItem key={idx} value={idx.toString()}>
                           {option.label} ({option.score} points)

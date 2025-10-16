@@ -134,7 +134,7 @@ const Judge = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-background flex flex-col">
       {/* Header */}
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
@@ -172,7 +172,7 @@ const Judge = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pb-20 min-h-[calc(100vh-180px)]">
         {!room || !judgeName ? (
           <div className="max-w-md mx-auto mt-20">
             <Card className="border-2 shadow-xl">
@@ -218,10 +218,10 @@ const Judge = () => {
                         onValueChange={(value) => setJudgeName(value)}
                         value={judgeName}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-popover">
                           <SelectValue placeholder="Select your name" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-popover z-50">
                           {judges.map((judge) => (
                             <SelectItem
                               key={judge.id}
@@ -249,6 +249,21 @@ const Judge = () => {
           <JudgeScoring roomId={room.id} judgeName={judgeName} />
         )}
       </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              This website is made by <span className="font-semibold text-foreground">Nishit R Kirani</span> from{" "}
+              <span className="font-semibold text-foreground">BNM Institute of Technology</span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Event Management Committee (EMC) is responsible for Prodothon
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

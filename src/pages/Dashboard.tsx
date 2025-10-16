@@ -93,7 +93,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-background flex flex-col">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -125,7 +125,7 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pb-20">
         <Tabs defaultValue="tracks" className="space-y-6">
           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="tracks" className="gap-2">
@@ -171,6 +171,21 @@ const Dashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
+        <div className="container mx-auto px-4 py-6">
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              This website is made by <span className="font-semibold text-foreground">Nishit R Kirani</span> from{" "}
+              <span className="font-semibold text-foreground">BNM Institute of Technology</span>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Event Management Committee (EMC) is responsible for Prodothon
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
