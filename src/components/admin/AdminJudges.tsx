@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Judge {
   id: string;
-  email: string;
+  email: string | null; // Email can now be null
   full_name: string | null;
   assigned_rooms: { room_id: string; rooms: { name: string } }[];
 }
@@ -31,11 +31,7 @@ const AdminJudges = () => {
   const [assignOpen, setAssignOpen] = useState(false);
   const [selectedJudge, setSelectedJudge] = useState<string>("");
   const [selectedRoom, setSelectedRoom] = useState<string>("");
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    full_name: "",
-  });
+  const [newJudgeFullName, setNewJudgeFullName] = useState(""); // Only full name needed now
 
   useEffect(() => {
     fetchJudges();
@@ -84,39 +80,32 @@ const AdminJudges = () => {
     e.preventDefault();
 
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.full_name,
-          },
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const response = await fetch('https://xrlzqtdhzgnjvmdycljs.supabase.co/functions/v1/create-judge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Include Authorization header if the Edge Function requires JWT verification
+          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
         },
+        body: JSON.stringify({ fullName: newJudgeFullName }),
       });
 
-      if (authError) throw authError;
+      const data = await response.json();
 
-      if (authData.user) {
-        // Assign judge role
-        const { error: roleError } = await supabase.from("user_roles").insert([
-          {
-            user_id: authData.user.id,
-            role: "judge",
-          },
-        ]);
-
-        if (roleError) throw roleError;
-
-        toast({
-          title: "Judge created",
-          description: "New judge has been created successfully.",
-        });
-
-        fetchJudges();
-        setOpen(false);
-        setFormData({ email: "", password: "", full_name: "" });
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create judge');
       }
+
+      toast({
+        title: "Judge created",
+        description: data.message || "New judge has been created successfully.",
+      });
+
+      fetchJudges();
+      setOpen(false);
+      setNewJudgeFullName(""); // Clear the input
     } catch (error: any) {
       toast({
         title: "Error creating judge",
@@ -247,42 +236,20 @@ const AdminJudges = () => {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create Judge Account</DialogTitle>
-                <DialogDescription>Add a new judge to the system</DialogDescription>
+                <DialogDescription>Add a new judge to the system by name</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateJudge} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="judge-name">Full Name</Label>
                   <Input
                     id="judge-name"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    value={newJudgeFullName}
+                    onChange={(e) => setNewJudgeFullName(e.target.value)}
                     placeholder="e.g., Dr. Smith"
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="judge-email">Email</Label>
-                  <Input
-                    id="judge-email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    placeholder="judge@example.com"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="judge-password">Password</Label>
-                  <Input
-                    id="judge-password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                </div>
+                {/* Email and Password fields removed as they are handled by Edge Function */}
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                     Cancel
@@ -300,7 +267,7 @@ const AdminJudges = () => {
           <Card key={judge.id} className="hover:shadow-md transition-shadow">
             <CardHeader>
               <CardTitle className="text-lg">{judge.full_name || "Unnamed Judge"}</CardTitle>
-              <CardDescription>{judge.email}</CardDescription>
+              <CardDescription>{judge.email || "No Email Provided"}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
