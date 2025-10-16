@@ -23,27 +23,47 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
 
   const fetchTeamStats = useCallback(async () => {
     // Fetch teams in the room
-    const { data: teamsData } = await supabase
+    const { data: teamsData, error: teamsError } = await supabase
       .from("teams")
       .select("id, name, team_number")
       .eq("room_id", roomId)
       .order("team_number");
 
+    if (teamsError) {
+      console.error("Error fetching teams:", teamsError);
+      setTeams([]);
+      return;
+    }
     if (!teamsData) return;
 
     // Fetch judge count for the room
-    const { count: totalJudges } = await supabase
+    const { count: totalJudges, error: judgesError } = await supabase
       .from("judge_assignments")
       .select("judge_id", { count: "exact", head: true })
       .eq("room_id", roomId);
 
+    if (judgesError) {
+      console.error("Error fetching judge assignments:", judgesError);
+      // Continue with totalJudges as 0 if there's an error
+    }
+
     // Fetch score counts and calculate average score for each team
     const teamsWithStats = await Promise.all(
       teamsData.map(async (team) => {
-        const { data: scoresData } = await supabase
+        const { data: scoresData, error: scoresError } = await supabase
           .from("scores")
           .select("judge_id, score")
           .eq("team_id", team.id);
+
+        if (scoresError) {
+          console.error("Error fetching scores for team", team.id, ":", scoresError);
+          return { 
+            ...team,
+            total_score: 0,
+            scored_count: 0,
+            total_judges: totalJudges || 0,
+          };
+        }
 
         const scoresByJudge = new Map<string, number>();
         if (scoresData) {
@@ -158,8 +178,8 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
                   <div className="flex justify-between items-center text-sm pt-1">
                     <span className="text-muted-foreground">Avg. Score</span>
                     <span className="font-bold text-primary text-lg">
-                      {team.total_score?.toFixed(2) || "0.00"}
-                    </span>
+                          {team.total_score?.toFixed(2) || "0.00"}
+                        </span>
                   </div>
                 </div>
               </div>

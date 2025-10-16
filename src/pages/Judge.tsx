@@ -32,6 +32,15 @@ interface Judge {
   full_name: string;
 }
 
+interface Team {
+  id: string;
+  name: string;
+  team_number: string;
+  members: string[] | null;
+  college: string | null;
+  problem_statement: string | null;
+}
+
 const Judge = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -40,6 +49,7 @@ const Judge = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const [showNameInput, setShowNameInput] = useState(false);
   const [judges, setJudges] = useState<Judge[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null); // New state for selected team
 
   useEffect(() => {
     const savedRoom = sessionStorage.getItem("judge_room");
@@ -131,6 +141,7 @@ const Judge = () => {
     setJudgeName("");
     setPasscode("");
     setShowNameInput(false);
+    setSelectedTeam(null); // Reset selected team on exit
   };
 
   return (
@@ -249,7 +260,12 @@ const Judge = () => {
             </Card>
           </div>
         ) : (
-          <JudgeScoring roomId={room.id} judgeName={judgeName} />
+          <JudgeScoring
+            roomId={room.id}
+            judgeName={judgeName}
+            selectedTeam={selectedTeam}
+            setSelectedTeam={setSelectedTeam}
+          />
         )}
       </main>
 

@@ -222,6 +222,7 @@ export type Database = {
           team_number: string
           total_score: number | null
           track_id: string
+          problem_statement: string
         }
         Insert: {
           college?: string | null
@@ -233,6 +234,7 @@ export type Database = {
           team_number: string
           total_score?: number | null
           track_id: string
+          problem_statement: string
         }
         Update: {
           college?: string | null
@@ -244,6 +246,7 @@ export type Database = {
           team_number?: string
           total_score?: number | null
           track_id?: string
+          problem_statement: string
         }
         Relationships: [
           {
