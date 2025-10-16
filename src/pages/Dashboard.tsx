@@ -3,13 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Trophy, Users, Target, DoorOpen, Award } from "lucide-react";
+import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminTracks from "@/components/admin/AdminTracks";
 import AdminRooms from "@/components/admin/AdminRooms";
 import AdminTeams from "@/components/admin/AdminTeams";
 import AdminJudges from "@/components/admin/AdminJudges";
 import Leaderboard from "@/components/Leaderboard";
+import { AdminOverview } from "@/components/admin/AdminOverview";
+import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
+import { AdminUserRoles } from "@/components/admin/AdminUserRoles";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -129,8 +132,20 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 pb-20">
-        <Tabs defaultValue="tracks" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="overview" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="gap-2">
+              <BarChart2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="user-roles" className="gap-2">
+              <UserCog className="h-4 w-4" />
+              <span className="hidden sm:inline">User Roles</span>
+            </TabsTrigger>
             <TabsTrigger value="tracks" className="gap-2">
               <Target className="h-4 w-4" />
               <span className="hidden sm:inline">Tracks</span>
@@ -152,6 +167,18 @@ const Dashboard = () => {
               <span className="hidden sm:inline">Leaderboard</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview" className="space-y-4">
+            <AdminOverview />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-4">
+            <AdminAnalytics />
+          </TabsContent>
+
+          <TabsContent value="user-roles" className="space-y-4">
+            <AdminUserRoles />
+          </TabsContent>
 
           <TabsContent value="tracks" className="space-y-4">
             <AdminTracks />
