@@ -104,7 +104,7 @@ const Auth = () => {
             PEMS
           </h1>
           <p className="text-muted-foreground mt-2">
-            Prodothon Evaluation Management System
+            Prodathon Evaluation Management System
           </p>
         </div>
 

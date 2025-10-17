@@ -218,7 +218,7 @@ const Dashboard = () => {
                 <img src="/logo.svg" alt="EMC Logo" className="h-12 w-12" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">Event Management Committee</p>
-                  <p className="text-xs text-muted-foreground">Prodothon Organizers</p>
+                  <p className="text-xs text-muted-foreground">Prodathon Organizers</p>
                 </div>
               </div>
             </div>

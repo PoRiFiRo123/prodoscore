@@ -15,7 +15,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <Trophy className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Prodothon Judging System
+                Prodathon Judging System
               </h1>
             </div>
             <Button variant="outline" onClick={() => navigate("/auth")}>
@@ -31,7 +31,7 @@ const Index = () => {
           <div className="container mx-auto max-w-6xl">
             <div className="text-center space-y-6 mb-16">
               <h2 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary-light bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                Welcome to Prodothon
+                Welcome to Prodathon
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-150">
                 Professional hackathon judging and scoring platform
@@ -50,7 +50,7 @@ const Index = () => {
                 <img src="/logo.svg" alt="EMC Logo" className="h-12 w-12" />
                 <div>
                   <p className="text-sm font-semibold text-foreground">Event Management Committee</p>
-                  <p className="text-xs text-muted-foreground">Prodothon Organizers</p>
+                  <p className="text-xs text-muted-foreground">Prodathon Organizers</p>
                 </div>
               </div>
             </div>
