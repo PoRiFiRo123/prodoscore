@@ -25,7 +25,7 @@ export const AdminUserRoles = () => {
   });
 
   const updateUserRoleMutation = useMutation({
-    mutationFn: async ({ userId, newRole }) => {
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: 'admin' | 'judge' | null }) => {
       const { error: deleteError } = await supabase
         .from("user_roles")
         .delete()
@@ -35,20 +35,20 @@ export const AdminUserRoles = () => {
       if (newRole) {
         const { error: insertError } = await supabase
           .from("user_roles")
-          .insert({ user_id: userId, role: newRole });
+          .insert([{ user_id: userId, role: newRole }]);
         if (insertError) throw insertError;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(["users_with_roles"]);
+      queryClient.invalidateQueries({ queryKey: ["users_with_roles"] });
       toast.success("User role updated successfully!");
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error("Failed to update user role: " + error.message);
     },
   });
 
-  const handleRoleChange = (userId, newRole) => {
+  const handleRoleChange = (userId: string, newRole: 'admin' | 'judge' | null) => {
     setSelectedRole(prev => ({ ...prev, [userId]: newRole }));
     updateUserRoleMutation.mutate({ userId, newRole });
   };

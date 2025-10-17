@@ -148,7 +148,7 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
                         {team.team_number}
                       </Badge>
                       {isComplete && (
-                        <Badge variant="success" className="gap-1">
+                        <Badge className="gap-1 bg-success text-success-foreground">
                           <CheckCircle2 className="h-3 w-3" />
                           Done
                         </Badge>
@@ -169,10 +169,7 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
 
                   <Progress
                     value={progress}
-                    className="h-2"
-                    indicatorClassName={
-                      isComplete ? "bg-success" : "bg-primary"
-                    }
+                    className={`h-2 ${isComplete ? "[&>div]:bg-success" : ""}`}
                   />
 
                   <div className="flex justify-between items-center text-sm pt-1">

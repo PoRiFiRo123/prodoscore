@@ -25,24 +25,36 @@ export const AdminAnalytics = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("scores")
-        .select("judge_id, count")
-        .rollup("count")
-        .neq("judge_id", null);
+        .select("judge_id")
+        .not("judge_id", "is", null);
 
       if (error) throw error;
 
-      const judgeIds = data.map(item => item.judge_id);
+      // Count evaluations per judge
+      const judgeEvaluations = new Map<string, number>();
+      data.forEach(score => {
+        if (score.judge_id) {
+          judgeEvaluations.set(
+            score.judge_id,
+            (judgeEvaluations.get(score.judge_id) || 0) + 1
+          );
+        }
+      });
+
+      const judgeIds = Array.from(judgeEvaluations.keys());
+      if (judgeIds.length === 0) return [];
+
       const { data: judges, error: judgeError } = await supabase
         .from("profiles")
         .select("id, full_name")
         .in("id", judgeIds);
       if (judgeError) throw judgeError;
 
-      const judgeMap = new Map(judges.map(judge => [judge.id, judge.full_name || `Judge ${judge.id.substring(0, 4)}`]));
+      const judgeMap = new Map(judges?.map(judge => [judge.id, judge.full_name || `Judge ${judge.id.substring(0, 4)}`]) || []);
 
-      return data.map(item => ({
-        name: judgeMap.get(item.judge_id) || `Unknown Judge ${item.judge_id.substring(0, 4)}`,
-        evaluations: item.count,
+      return Array.from(judgeEvaluations.entries()).map(([judgeId, count]) => ({
+        name: judgeMap.get(judgeId) || `Unknown Judge ${judgeId.substring(0, 4)}`,
+        evaluations: count,
       }));
     },
   });
