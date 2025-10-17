@@ -9,16 +9,19 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-card backdrop-blur-sm sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate("/")} 
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
               <Trophy className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold text-primary">
                 Prodathon Judging System
               </h1>
-            </div>
-            <Button variant="outline" onClick={() => navigate("/auth")}>
+            </button>
+            <Button onClick={() => navigate("/auth")}>
               Admin Login
             </Button>
           </div>
@@ -30,10 +33,11 @@ const Index = () => {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-6xl">
             <div className="text-center space-y-6 mb-16">
-              <h2 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-accent to-primary-light bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                Welcome to Prodathon
+              <h2 className="text-4xl md:text-6xl font-bold animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <span className="text-primary">Welcome to </span>
+                <span className="text-primary font-extrabold">Prodathon</span>
               </h2>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-150">
+              <p className="text-xl text-foreground/80 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-150">
                 Professional hackathon judging and scoring platform
               </p>
             </div>
@@ -57,13 +61,13 @@ const Index = () => {
 
             {/* Action Cards */}
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-              <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 hover:border-primary/50 animate-in fade-in slide-in-from-left duration-700">
+              <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-2 border-border hover:border-primary bg-card animate-in fade-in slide-in-from-left duration-700">
                 <CardHeader>
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                    <Shield className="h-6 w-6 text-primary" />
+                  <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center mb-4 group-hover:shadow-lg transition-all">
+                    <Shield className="h-7 w-7 text-primary-foreground" />
                   </div>
-                  <CardTitle className="text-2xl">Admin Panel</CardTitle>
-                  <CardDescription className="text-base">
+                  <CardTitle className="text-2xl text-foreground">Admin Panel</CardTitle>
+                  <CardDescription className="text-base text-foreground/70">
                     Manage tracks, rooms, teams, and judges
                   </CardDescription>
                 </CardHeader>
@@ -78,20 +82,20 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="group hover:shadow-lg transition-all duration-300 hover:scale-105 hover:border-accent/50 animate-in fade-in slide-in-from-right duration-700">
+              <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-2 border-border hover:border-primary bg-card animate-in fade-in slide-in-from-right duration-700">
                 <CardHeader>
-                  <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-4 group-hover:bg-accent/20 transition-colors">
-                    <Gavel className="h-6 w-6 text-accent" />
+                  <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center mb-4 group-hover:shadow-lg transition-all">
+                    <Gavel className="h-7 w-7 text-primary-foreground" />
                   </div>
-                  <CardTitle className="text-2xl">Judge Access</CardTitle>
-                  <CardDescription className="text-base">
+                  <CardTitle className="text-2xl text-foreground">Judge Access</CardTitle>
+                  <CardDescription className="text-base text-foreground/70">
                     Enter your room passcode to start judging
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Button 
                     onClick={() => navigate("/judge")} 
-                    className="w-full bg-accent hover:bg-accent/90"
+                    className="w-full"
                     size="lg"
                   >
                     Start Judging
@@ -102,30 +106,30 @@ const Index = () => {
 
             {/* Features */}
             <div className="mt-20 grid md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom duration-1000 delay-300">
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <Trophy className="h-6 w-6 text-primary" />
+              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
+                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
+                  <Trophy className="h-7 w-7 text-primary-foreground" />
                 </div>
-                <h3 className="font-semibold">Real-time Scoring</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-foreground">Real-time Scoring</h3>
+                <p className="text-sm text-foreground/70">
                   Live leaderboard updates as judges score teams
                 </p>
               </div>
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3">
-                  <Users className="h-6 w-6 text-accent" />
+              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
+                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
+                  <Users className="h-7 w-7 text-primary-foreground" />
                 </div>
-                <h3 className="font-semibold">Multi-Room Support</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-foreground">Multi-Room Support</h3>
+                <p className="text-sm text-foreground/70">
                   Organize multiple tracks and judging rooms
                 </p>
               </div>
-              <div className="text-center space-y-2">
-                <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
-                  <Shield className="h-6 w-6 text-success" />
+              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
+                <div className="w-14 h-14 rounded-full bg-success flex items-center justify-center mx-auto mb-3">
+                  <Shield className="h-7 w-7 text-success-foreground" />
                 </div>
-                <h3 className="font-semibold">Secure Access</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-foreground">Secure Access</h3>
+                <p className="text-sm text-foreground/70">
                   Passcode-protected rooms for judges
                 </p>
               </div>
@@ -135,16 +139,16 @@ const Index = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
+      <footer className="border-t bg-card backdrop-blur-sm mt-auto shadow-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-center">
             <div className="text-center">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-foreground/70">
                 Developed by <span className="font-semibold text-foreground">Nishit R Kirani</span>
               </p>
               <div className="flex items-center justify-center">
                 <img src="/bnmit.svg" alt="BNMIT Logo" className="h-6 w-auto mr-2" />
-                <p className="text-xs text-muted-foreground">© 2025</p>
+                <p className="text-xs text-foreground/60">© 2025</p>
               </div>
             </div>
           </div>
