@@ -94,7 +94,7 @@ const Index = () => {
             </div>
 
             {/* Public Leaderboard Section */}
-            <div className="mt-32 mb-32">
+            <div className="mt-20 mb-32">
               <PublicLeaderboard />
             </div>
 
