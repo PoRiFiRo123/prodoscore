@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, Clock, TrendingUp, Zap } from "lucide-react";
+import { Trophy, Users, Clock, TrendingUp, Zap, CheckCircle2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -31,7 +31,8 @@ interface RoomActivity {
   team_count: number;
   avg_score: number;
   top_team?: string;
-  teams: { id: string; name: string }[]; // Added teams array to RoomActivity
+  teams: { id: string; name: string; total_score: number }[];
+  evaluated_teams_count: number;
 }
 
 interface Room {
@@ -55,10 +56,9 @@ const PublicLeaderboard = () => {
 
   const fetchLeaderboardData = async () => {
     try {
-      // Fetch all rooms and tracks
       const { data: roomsData, error: roomsError } = await supabase
         .from("rooms")
-        .select("id, name");
+        .select("id, name, track_id");
       if (roomsError) throw roomsError;
       setAllRooms(roomsData || []);
 
@@ -68,7 +68,6 @@ const PublicLeaderboard = () => {
       if (tracksError) throw tracksError;
       setAllTracks(tracksData || []);
 
-      // Fetch top teams with track and room info
       let teamsQuery = supabase
         .from("teams")
         .select(
@@ -95,7 +94,6 @@ const PublicLeaderboard = () => {
 
       if (teamsError) throw teamsError;
 
-      // Calculate scores for each team
       const teamsWithScores = await Promise.all(
         (teamsData || []).map(async (team) => {
           const { data: scores } = await supabase
@@ -123,7 +121,6 @@ const PublicLeaderboard = () => {
         })
       );
 
-      // Sort and assign ranks
       teamsWithScores.sort((a, b) => b.total_score - a.total_score);
       teamsWithScores.forEach((team, index) => {
         team.rank = index + 1;
@@ -131,13 +128,13 @@ const PublicLeaderboard = () => {
 
       setTopTeams(teamsWithScores);
 
-      // Fetch room activities
       let roomActivityQuery = supabase
         .from("rooms")
         .select(
           `
           id,
           name,
+          track_id,
           tracks!inner(name)
         `
         );
@@ -147,7 +144,7 @@ const PublicLeaderboard = () => {
       }
       if (selectedTrackId) {
         roomActivityQuery = roomActivityQuery.eq(
-          "tracks.id",
+          "track_id",
           selectedTrackId
         );
       }
@@ -159,18 +156,38 @@ const PublicLeaderboard = () => {
 
       const activities = await Promise.all(
         (filteredRoomsData || []).map(async (room) => {
-          const { data: roomTeams } = await supabase
+          const { data: roomTeamsRaw } = await supabase
             .from("teams")
-            .select("id, name, total_score")
+            .select("id, name")
             .eq("room_id", room.id);
 
-          const teamCount = roomTeams?.length || 0;
+          const roomTeamsWithScores = await Promise.all(
+            (roomTeamsRaw || []).map(async (team) => {
+              const { data: scores } = await supabase
+                .from("scores")
+                .select("score, criterion_id, criteria!inner(weightage)")
+                .eq("team_id", team.id);
+
+              const totalScore =
+                scores?.reduce((sum, score) => {
+                  const weightage = (score as any).criteria?.weightage || 1;
+                  return sum + Number(score.score) * Number(weightage);
+                }, 0) || 0;
+
+              return { ...team, total_score: totalScore };
+            })
+          );
+
+          const teamCount = roomTeamsWithScores?.length || 0;
+          const evaluatedTeamsCount = roomTeamsWithScores?.filter(team => team.total_score > 0).length || 0;
           const avgScore =
             teamCount > 0
-              ? roomTeams!.reduce((sum, t) => sum + Number(t.total_score), 0) /
-                teamCount
+              ? roomTeamsWithScores!.reduce(
+                  (sum, t) => sum + Number(t.total_score),
+                  0
+                ) / teamCount
               : 0;
-          const topTeam = roomTeams?.sort(
+          const topTeam = roomTeamsWithScores?.sort(
             (a, b) => Number(b.total_score) - Number(a.total_score)
           )[0];
 
@@ -181,7 +198,8 @@ const PublicLeaderboard = () => {
             team_count: teamCount,
             avg_score: avgScore,
             top_team: topTeam?.name,
-            teams: roomTeams || [], // Store all teams for the room
+            teams: roomTeamsWithScores || [],
+            evaluated_teams_count: evaluatedTeamsCount,
           };
         })
       );
@@ -215,7 +233,7 @@ const PublicLeaderboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedRoomId, selectedTrackId]); // Re-fetch when filters change
+  }, [selectedRoomId, selectedTrackId]);
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return "🥇";
@@ -293,73 +311,82 @@ const PublicLeaderboard = () => {
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {roomActivities.length > 0 ? (
-            roomActivities.map((room) => (
-              <Card
-                key={room.room_id}
-                className="group hover:shadow-2xl transition-all duration-300 hover:scale-105 border-2 border-border hover:border-primary bg-card overflow-hidden animate-in fade-in slide-in-from-bottom duration-700"
-              >
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-bl-full -z-10" />
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-xl text-foreground mb-1">
-                        {room.room_name}
-                      </CardTitle>
-                      <Badge variant="secondary" className="text-xs">
-                        {room.track_name}
-                      </Badge>
-                    </div>
-                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Users className="h-6 w-6 text-primary" />
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-foreground/70">Teams Competing</span>
-                    <span className="text-2xl font-bold text-primary">
-                      {room.team_count}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between text-sm mb-2">
-                      <span className="text-foreground/70">Average Score</span>
-                      <span className="text-lg font-semibold text-foreground">
-                        {room.avg_score.toFixed(1)}
-                      </span>
-                    </div>
-                    <Progress value={(room.avg_score / 100) * 100} className="h-2" />
-                  </div>
-                  <div className="pt-2 border-t border-border">
-                    <p className="text-xs text-foreground/70 mb-2">Teams in this classroom:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {room.teams.length > 0 ? (
-                        room.teams.map((team) => (
-                          <Badge key={team.id} variant="outline" className="text-xs">
-                            {team.name}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-xs text-muted-foreground">No teams yet</span>
-                      )}
-                    </div>
-                  </div>
-                  {room.top_team && (
-                    <div className="pt-2 border-t border-border mt-4">
-                      <div className="flex items-center gap-2">
-                        <Trophy className="h-4 w-4 text-primary" />
-                        <span className="text-xs text-foreground/70">
-                          Leading:{" "}
-                        </span>
-                        <span className="text-sm font-semibold text-foreground truncate">
-                          {room.top_team}
-                        </span>
+            roomActivities.map((room) => {
+              const progress = room.team_count > 0 ? (room.evaluated_teams_count / room.team_count) * 100 : 0;
+              const isComplete = room.evaluated_teams_count === room.team_count && room.team_count > 0;
+
+              return (
+                <Card
+                  key={room.room_id}
+                  className="group hover:shadow-2xl transition-all duration-300 hover:scale-105 border-2 border-border hover:border-primary bg-card overflow-hidden animate-in fade-in slide-in-from-bottom duration-700"
+                >
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-bl-full -z-10" />
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="text-xl text-foreground mb-1">
+                          {room.room_name}
+                        </CardTitle>
+                        <Badge variant="secondary" className="text-xs">
+                          {room.track_name}
+                        </Badge>
+                      </div>
+                      <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Users className="h-6 w-6 text-primary" />
                       </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-foreground/70">Teams Competing</span>
+                      <span className="text-2xl font-bold text-primary">
+                        {room.team_count}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-foreground/70">Evaluation Progress</span>
+                        <span className="font-medium">
+                          {room.evaluated_teams_count}/{room.team_count} evaluated
+                        </span>
+                      </div>
+                      <Progress
+                        value={progress}
+                        className={`h-2 ${isComplete ? "[&>div]:bg-green-500" : ""}`}
+                      />
+                    </div>
+                    
+                    <div className="pt-2 border-t border-border">
+                      <p className="text-xs text-foreground/70 mb-2">Teams in this classroom:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {room.teams.length > 0 ? (
+                          room.teams.map((team) => (
+                            <Badge key={team.id} variant="outline" className="text-xs">
+                              {team.name}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">No teams yet</span>
+                        )}
+                      </div>
+                    </div>
+                    {room.top_team && (
+                      <div className="pt-2 border-t border-border mt-4">
+                        <div className="flex items-center gap-2">
+                          <Trophy className="h-4 w-4 text-primary" />
+                          <span className="text-xs text-foreground/70">
+                            Leading:{" "}
+                          </span>
+                          <span className="text-sm font-semibold text-foreground truncate">
+                            {room.top_team}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
           ) : (
             <Card className="col-span-full border-2 border-dashed border-border bg-card">
               <CardContent className="py-12 text-center">
@@ -401,7 +428,6 @@ const PublicLeaderboard = () => {
               >
                 <CardContent className="p-6">
                   <div className="flex items-center gap-6">
-                    {/* Rank */}
                     <div
                       className={`text-5xl font-bold ${getRankColor(
                         team.rank
@@ -410,7 +436,6 @@ const PublicLeaderboard = () => {
                       {getRankIcon(team.rank)}
                     </div>
 
-                    {/* Team Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div className="min-w-0 flex-1">
@@ -431,7 +456,6 @@ const PublicLeaderboard = () => {
                           </div>
                         </div>
 
-                        {/* Score */}
                         <div className="text-right">
                           <div className="flex items-center gap-2">
                             <TrendingUp className="h-5 w-5 text-primary animate-pulse" />
