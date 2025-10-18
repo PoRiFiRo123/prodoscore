@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Save, Users, Building, FileText } from "lucide-react";
+import { ArrowLeft, Save, Users, Building, FileText, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import LiveTeamStats from "./LiveTeamStats";
 
@@ -43,17 +43,19 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
   const [dropdownSelections, setDropdownSelections] = useState<Record<string, string>>({});
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
+  const [isRoomLocked, setIsRoomLocked] = useState(false); // New state for room lock status
 
   useEffect(() => {
     fetchTeams();
     fetchCriteria();
+    fetchRoomLockStatus(); // Fetch room lock status
   }, [roomId]);
 
   useEffect(() => {
     if (selectedTeam && judgeId) {
       loadExistingScores();
     }
-  }, [selectedTeam, judgeId]); // Added judgeId to dependencies
+  }, [selectedTeam, judgeId]);
 
   useEffect(() => {
     if (!selectedTeam) {
@@ -91,6 +93,21 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
       setDropdownSelections(derivedSelections);
     }
   }, [criteria, dropdownSelections, scores, selectedTeam]);
+
+  const fetchRoomLockStatus = async () => {
+    const { data, error } = await supabase
+      .from("rooms")
+      .select("is_locked")
+      .eq("id", roomId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching room lock status:", error);
+      return;
+    }
+    
+    setIsRoomLocked(data?.is_locked || false);
+  };
 
   const fetchTeams = async () => {
     const { data, error } = await supabase
@@ -278,6 +295,13 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
             Back to Teams
           </Button>
 
+          {isRoomLocked && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              <span className="block sm:inline font-semibold">This room is locked. You cannot edit scores.</span>
+            </div>
+          )}
+
           <Card className="border-2 shadow-lg mb-6">
             <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
               <CardTitle className="text-2xl">Evaluating: {selectedTeam.name}</CardTitle>
@@ -339,6 +363,7 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
                            }
                           }
                           className="text-lg"
+                          disabled={isRoomLocked} // Disable if room is locked
                         />
                         <p className="text-sm text-muted-foreground">
                           Maximum: {criterion.max_score} points
@@ -362,6 +387,7 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
                             });
                           }
                         }}
+                        disabled={isRoomLocked} // Disable if room is locked
                       >
                         <SelectTrigger className="text-lg bg-popover">
                           <SelectValue>
@@ -398,12 +424,13 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
                   placeholder="Add your feedback and observations here..."
                   rows={5}
                   className="resize-none"
+                  disabled={isRoomLocked} // Disable if room is locked
                 />
               </div>
 
               <Button
                 onClick={handleSaveScores}
-                disabled={saving}
+                disabled={saving || isRoomLocked} // Disable if saving or room is locked
                 className="w-full h-12 text-lg font-semibold"
                 size="lg"
               >
