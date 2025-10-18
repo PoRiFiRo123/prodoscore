@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Users, CheckCircle2 } from "lucide-react";
+import { Trophy, Users, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 
 interface Team {
   id: string;
@@ -20,6 +21,7 @@ interface LiveTeamStatsProps {
 
 const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
   const [teams, setTeams] = useState<Team[]>([]);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const fetchTeamStats = useCallback(async () => {
     // Fetch teams in the room
@@ -118,6 +120,18 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
     };
   }, [roomId, fetchTeamStats]);
 
+  const scrollLeft = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: -300, behavior: "smooth" });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({ left: 300, behavior: "smooth" });
+    }
+  };
+
   return (
     <Card className="mb-6 border-2">
       <CardHeader>
@@ -127,61 +141,79 @@ const LiveTeamStats = ({ roomId }: LiveTeamStatsProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teams.map((team) => {
-            const progress =
-              team.total_judges > 0
-                ? (team.scored_count / team.total_judges) * 100
-                : 0;
-            const isComplete =
-              team.scored_count === team.total_judges && team.total_judges > 0;
+        <div className="relative flex items-center py-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute left-2 z-10 bg-background/80 hover:bg-background inset-y-0 my-auto"
+            onClick={scrollLeft}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <div ref={scrollRef} className="flex space-x-4 overflow-x-auto px-12 py-2 w-full scrollbar-hide">
+            {teams.map((team) => {
+              const progress =
+                team.total_judges > 0
+                  ? (team.scored_count / team.total_judges) * 100
+                  : 0;
+              const isComplete =
+                team.scored_count === team.total_judges && team.total_judges > 0;
 
-            return (
-              <div
-                key={team.id}
-                className="p-4 rounded-lg border bg-card hover:shadow-md transition-all"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs font-mono">
-                        {team.team_number}
-                      </Badge>
-                      {isComplete && (
-                        <Badge className="gap-1 bg-success text-success-foreground">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Done
+              return (
+                <div
+                  key={team.id}
+                  className="min-w-[300px] p-4 rounded-lg border bg-card hover:shadow-md transition-all"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs font-mono">
+                          {team.team_number}
                         </Badge>
-                      )}
+                        {isComplete && (
+                          <Badge className="gap-1 bg-success text-success-foreground">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Done
+                          </Badge>
+                        )}
+                      </div>
+                      <h4 className="font-semibold mt-1">{team.name}</h4>
                     </div>
-                    <h4 className="font-semibold mt-1">{team.name}</h4>
+                    <Trophy className="h-5 w-5 text-accent opacity-50" />
                   </div>
-                  <Trophy className="h-5 w-5 text-accent opacity-50" />
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium">
+                        {team.scored_count}/{team.total_judges} judges
+                      </span>
+                    </div>
+
+                    <Progress
+                      value={progress}
+                      className={`h-2 ${isComplete ? "[&>div]:bg-success" : ""}`}
+                    />
+
+                    <div className="flex justify-between items-center text-sm pt-1">
+                      <span className="text-muted-foreground">Avg. Score</span>
+                      <span className="font-bold text-primary text-lg">
+                            {team.total_score?.toFixed(2) || "0.00"}
+                          </span>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium">
-                      {team.scored_count}/{team.total_judges} judges
-                    </span>
-                  </div>
-
-                  <Progress
-                    value={progress}
-                    className={`h-2 ${isComplete ? "[&>div]:bg-success" : ""}`}
-                  />
-
-                  <div className="flex justify-between items-center text-sm pt-1">
-                    <span className="text-muted-foreground">Avg. Score</span>
-                    <span className="font-bold text-primary text-lg">
-                          {team.total_score?.toFixed(2) || "0.00"}
-                        </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="absolute right-2 z-10 bg-background/80 hover:bg-background inset-y-0 my-auto"
+            onClick={scrollRight}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>

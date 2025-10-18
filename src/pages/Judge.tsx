@@ -64,6 +64,11 @@ const Judge = () => {
     }
   }, []);
 
+  // Scroll to top when selectedTeam changes (i.e., when a team is clicked)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [selectedTeam]);
+
   const handlePasscodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
