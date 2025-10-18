@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield, Gavel, Trophy, Users } from "lucide-react";
+import PublicLeaderboard from "@/components/PublicLeaderboard";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -133,6 +134,11 @@ const Index = () => {
                   Passcode-protected rooms for judges
                 </p>
               </div>
+            </div>
+
+            {/* Public Leaderboard Section */}
+            <div className="mt-32">
+              <PublicLeaderboard />
             </div>
           </div>
         </section>
