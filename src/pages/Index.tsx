@@ -60,6 +60,44 @@ const Index = () => {
               </div>
             </div>
 
+
+
+            {/* Features */}
+            <div className="mt-20 grid md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom duration-1000 delay-300">
+              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
+                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
+                  <Trophy className="h-7 w-7 text-primary-foreground" />
+                </div>
+                <h3 className="font-semibold text-foreground">Real-time Scoring</h3>
+                <p className="text-sm text-foreground/70">
+                  Live leaderboard updates as judges score teams
+                </p>
+              </div>
+              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
+                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
+                  <Users className="h-7 w-7 text-primary-foreground" />
+                </div>
+                <h3 className="font-semibold text-foreground">Multi-Room Support</h3>
+                <p className="text-sm text-foreground/70">
+                  Organize multiple tracks and judging rooms
+                </p>
+              </div>
+              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
+                <div className="w-14 h-14 rounded-full bg-success flex items-center justify-center mx-auto mb-3">
+                  <Shield className="h-7 w-7 text-success-foreground" />
+                </div>
+                <h3 className="font-semibold text-foreground">Secure Access</h3>
+                <p className="text-sm text-foreground/70">
+                  Passcode-protected rooms for judges
+                </p>
+              </div>
+            </div>
+
+            {/* Public Leaderboard Section */}
+            <div className="mt-32 mb-32">
+              <PublicLeaderboard />
+            </div>
+
             {/* Action Cards */}
             <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               <Card className="group hover:shadow-xl transition-all duration-300 hover:scale-105 border-2 border-border hover:border-primary bg-card animate-in fade-in slide-in-from-left duration-700">
@@ -103,42 +141,6 @@ const Index = () => {
                   </Button>
                 </CardContent>
               </Card>
-            </div>
-
-            {/* Features */}
-            <div className="mt-20 grid md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom duration-1000 delay-300">
-              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
-                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
-                  <Trophy className="h-7 w-7 text-primary-foreground" />
-                </div>
-                <h3 className="font-semibold text-foreground">Real-time Scoring</h3>
-                <p className="text-sm text-foreground/70">
-                  Live leaderboard updates as judges score teams
-                </p>
-              </div>
-              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
-                <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
-                  <Users className="h-7 w-7 text-primary-foreground" />
-                </div>
-                <h3 className="font-semibold text-foreground">Multi-Room Support</h3>
-                <p className="text-sm text-foreground/70">
-                  Organize multiple tracks and judging rooms
-                </p>
-              </div>
-              <div className="text-center space-y-2 p-6 rounded-lg bg-card border hover:shadow-md transition-all">
-                <div className="w-14 h-14 rounded-full bg-success flex items-center justify-center mx-auto mb-3">
-                  <Shield className="h-7 w-7 text-success-foreground" />
-                </div>
-                <h3 className="font-semibold text-foreground">Secure Access</h3>
-                <p className="text-sm text-foreground/70">
-                  Passcode-protected rooms for judges
-                </p>
-              </div>
-            </div>
-
-            {/* Public Leaderboard Section */}
-            <div className="mt-32">
-              <PublicLeaderboard />
             </div>
           </div>
         </section>

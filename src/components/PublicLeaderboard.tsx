@@ -31,6 +31,7 @@ interface RoomActivity {
   team_count: number;
   avg_score: number;
   top_team?: string;
+  teams: { id: string; name: string }[]; // Added teams array to RoomActivity
 }
 
 interface Room {
@@ -180,6 +181,7 @@ const PublicLeaderboard = () => {
             team_count: teamCount,
             avg_score: avgScore,
             top_team: topTeam?.name,
+            teams: roomTeams || [], // Store all teams for the room
           };
         })
       );
@@ -328,8 +330,22 @@ const PublicLeaderboard = () => {
                     </div>
                     <Progress value={(room.avg_score / 100) * 100} className="h-2" />
                   </div>
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs text-foreground/70 mb-2">Teams in this classroom:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {room.teams.length > 0 ? (
+                        room.teams.map((team) => (
+                          <Badge key={team.id} variant="outline" className="text-xs">
+                            {team.name}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No teams yet</span>
+                      )}
+                    </div>
+                  </div>
                   {room.top_team && (
-                    <div className="pt-2 border-t border-border">
+                    <div className="pt-2 border-t border-border mt-4">
                       <div className="flex items-center gap-2">
                         <Trophy className="h-4 w-4 text-primary" />
                         <span className="text-xs text-foreground/70">
