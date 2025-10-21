@@ -29,6 +29,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Users as UsersIcon, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAdminAction } from "@/lib/auditLog";
 
 interface Team {
   id: string;
@@ -190,17 +191,30 @@ const AdminTeams = () => {
 
     if (editingTeam) {
       // Update
-      const { error: updateError } = await supabase
+      const oldTeam = { ...editingTeam };
+      const { data: updatedTeam, error: updateError } = await supabase
         .from("teams")
         .update(dataToSubmit)
-        .eq("id", editingTeam.id);
+        .eq("id", editingTeam.id)
+        .select()
+        .single();
       error = updateError;
+
+      if (!error) {
+        logAdminAction("TEAM_UPDATED", "teams", editingTeam.id, oldTeam, updatedTeam);
+      }
     } else {
       // Create
-      const { error: insertError } = await supabase
+      const { data: newTeam, error: insertError } = await supabase
         .from("teams")
-        .insert([dataToSubmit]);
+        .insert([dataToSubmit])
+        .select()
+        .single();
       error = insertError;
+
+      if (!error) {
+        logAdminAction("TEAM_CREATED", "teams", newTeam.id, null, newTeam);
+      }
     }
 
     if (error) {
@@ -224,6 +238,8 @@ const AdminTeams = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this team?")) return;
 
+    const { data: oldTeamData } = await supabase.from("teams").select("*").eq("id", id).single();
+
     const { error } = await supabase.from("teams").delete().eq("id", id);
 
     if (error) {
@@ -237,6 +253,7 @@ const AdminTeams = () => {
         title: "Team deleted",
         description: "Team has been deleted successfully.",
       });
+      logAdminAction("TEAM_DELETED", "teams", id, oldTeamData, null);
       fetchTeams();
     }
   };

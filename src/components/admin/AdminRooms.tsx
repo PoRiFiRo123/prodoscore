@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Lock, Unlock, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAdminAction } from "@/lib/auditLog";
 
 interface Room {
   id: string;
@@ -63,10 +64,13 @@ const AdminRooms = () => {
     e.preventDefault();
 
     if (editingRoom) {
-      const { error } = await supabase
+      const oldRoom = { ...editingRoom };
+      const { data, error } = await supabase
         .from("rooms")
         .update(formData)
-        .eq("id", editingRoom.id);
+        .eq("id", editingRoom.id)
+        .select()
+        .single();
 
       if (error) {
         toast({
@@ -79,13 +83,14 @@ const AdminRooms = () => {
           title: "Room updated",
           description: "Room has been updated successfully.",
         });
+        logAdminAction("ROOM_UPDATED", "rooms", editingRoom.id, oldRoom, data);
         fetchRooms();
         setOpen(false);
         setEditingRoom(null);
         setFormData({ name: "", track_id: "", passcode: "" });
       }
     } else {
-      const { error } = await supabase.from("rooms").insert([formData]);
+      const { data, error } = await supabase.from("rooms").insert([formData]).select().single();
 
       if (error) {
         toast({
@@ -98,6 +103,7 @@ const AdminRooms = () => {
           title: "Room created",
           description: "New room has been created successfully.",
         });
+        logAdminAction("ROOM_CREATED", "rooms", data.id, null, data);
         fetchRooms();
         setOpen(false);
         setFormData({ name: "", track_id: "", passcode: "" });
@@ -118,6 +124,8 @@ const AdminRooms = () => {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this room?")) return;
 
+    const { data: oldRoomData } = await supabase.from("rooms").select("*").eq("id", id).single();
+
     const { error } = await supabase.from("rooms").delete().eq("id", id);
 
     if (error) {
@@ -131,15 +139,19 @@ const AdminRooms = () => {
         title: "Room deleted",
         description: "Room has been deleted successfully.",
       });
+      logAdminAction("ROOM_DELETED", "rooms", id, oldRoomData, null);
       fetchRooms();
     }
   };
 
   const toggleLock = async (id: string, isLocked: boolean) => {
-    const { error } = await supabase
+    const { data: oldRoomData } = await supabase.from("rooms").select("*").eq("id", id).single();
+    const { data, error } = await supabase
       .from("rooms")
       .update({ is_locked: !isLocked })
-      .eq("id", id);
+      .eq("id", id)
+      .select()
+      .single();
 
     if (error) {
       toast({
@@ -154,6 +166,8 @@ const AdminRooms = () => {
           ? "Judges can now edit scores in this room."
           : "Judges can no longer edit scores in this room.",
       });
+      const actionType = isLocked ? "ROOM_UNLOCKED" : "ROOM_LOCKED";
+      logAdminAction(actionType, "rooms", id, oldRoomData, data);
       fetchRooms();
     }
   };

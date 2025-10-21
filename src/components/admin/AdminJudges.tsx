@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logAdminAction } from "@/lib/auditLog";
 
 interface Judge {
   id: string;
@@ -103,6 +104,11 @@ const AdminJudges = () => {
         description: data.message || "New judge has been created successfully.",
       });
 
+      // Assuming the edge function returns the created judge's ID and name if successful
+      if (data.judgeId) {
+        logAdminAction("JUDGE_CREATED", "judges", data.judgeId, null, { id: data.judgeId, full_name: newJudgeFullName });
+      }
+
       fetchJudges();
       setOpen(false);
       setNewJudgeFullName(""); // Clear the input
@@ -118,12 +124,28 @@ const AdminJudges = () => {
   const handleAssignRoom = async () => {
     if (!selectedJudge || !selectedRoom) return;
 
-    const { error } = await supabase.from("judge_assignments").insert([
+    const { data: existingAssignment } = await supabase
+        .from("judge_assignments")
+        .select("*")
+        .eq("judge_id", selectedJudge)
+        .eq("room_id", selectedRoom)
+        .single();
+    
+    if (existingAssignment) {
+        toast({
+            title: "Assignment exists",
+            description: "This judge is already assigned to this room.",
+            variant: "default",
+        });
+        return;
+    }
+
+    const { data, error } = await supabase.from("judge_assignments").insert([
       {
         judge_id: selectedJudge,
         room_id: selectedRoom,
       },
-    ]);
+    ]).select().single();
 
     if (error) {
       toast({
@@ -136,6 +158,7 @@ const AdminJudges = () => {
         title: "Room assigned",
         description: "Judge has been assigned to the room successfully.",
       });
+      logAdminAction("JUDGE_ROOM_ASSIGNED", "judge_assignments", data.id, null, data);
       fetchJudges();
       setAssignOpen(false);
       setSelectedJudge("");
@@ -144,6 +167,13 @@ const AdminJudges = () => {
   };
 
   const handleRemoveAssignment = async (judgeId: string, roomId: string) => {
+    const { data: oldAssignmentData } = await supabase
+      .from("judge_assignments")
+      .select("*")
+      .eq("judge_id", judgeId)
+      .eq("room_id", roomId)
+      .single();
+
     const { error } = await supabase
       .from("judge_assignments")
       .delete()
@@ -161,6 +191,7 @@ const AdminJudges = () => {
         title: "Assignment removed",
         description: "Room assignment has been removed successfully.",
       });
+      logAdminAction("JUDGE_ROOM_UNASSIGNED", "judge_assignments", oldAssignmentData.id, oldAssignmentData, null);
       fetchJudges();
     }
   };

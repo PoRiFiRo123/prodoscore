@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Plus, Trash2, Edit, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { logAdminAction } from "@/lib/auditLog";
 
 interface Track {
   id: string;
@@ -66,10 +67,13 @@ const AdminTracks = () => {
     e.preventDefault();
 
     if (editingTrack) {
-      const { error } = await supabase
+      const oldTrack = { ...editingTrack };
+      const { data, error } = await supabase
         .from("tracks")
         .update(formData)
-        .eq("id", editingTrack.id);
+        .eq("id", editingTrack.id)
+        .select()
+        .single();
 
       if (error) {
         toast({
@@ -82,11 +86,12 @@ const AdminTracks = () => {
           title: "Track updated",
           description: "Track has been updated successfully.",
         });
+        logAdminAction("TRACK_UPDATED", "tracks", editingTrack.id, oldTrack, data);
         fetchTracks();
         handleClose();
       }
     } else {
-      const { error } = await supabase.from("tracks").insert([formData]);
+      const { data, error } = await supabase.from("tracks").insert([formData]).select().single();
 
       if (error) {
         toast({
@@ -99,6 +104,7 @@ const AdminTracks = () => {
           title: "Track created",
           description: "New track has been created successfully.",
         });
+        logAdminAction("TRACK_CREATED", "tracks", data.id, null, data);
         fetchTracks();
         handleClose();
       }
@@ -107,6 +113,8 @@ const AdminTracks = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this track?")) return;
+
+    const { data: oldTrackData } = await supabase.from("tracks").select("*").eq("id", id).single();
 
     const { error } = await supabase.from("tracks").delete().eq("id", id);
 
@@ -121,6 +129,7 @@ const AdminTracks = () => {
         title: "Track deleted",
         description: "Track has been deleted successfully.",
       });
+      logAdminAction("TRACK_DELETED", "tracks", id, oldTrackData, null);
       fetchTracks();
     }
   };
@@ -153,14 +162,16 @@ const AdminTracks = () => {
   const handleAddCriterion = async () => {
     if (!selectedTrack || !criterionForm.name) return;
 
-    const { error } = await supabase.from("criteria").insert([{
+    const newCriterion = {
       track_id: selectedTrack.id,
       name: criterionForm.name,
       max_score: criterionForm.max_score,
       type: criterionForm.type,
       options: criterionForm.type === "dropdown" ? criterionForm.options : null,
       display_order: criteria.length
-    }]);
+    };
+
+    const { data, error } = await supabase.from("criteria").insert([newCriterion]).select().single();
 
     if (error) {
       toast({
@@ -170,6 +181,7 @@ const AdminTracks = () => {
       });
     } else {
       toast({ title: "Question added successfully" });
+      logAdminAction("CRITERION_CREATED", "criteria", data.id, null, data);
       setCriterionForm({
         name: "",
         max_score: 10,
@@ -181,6 +193,8 @@ const AdminTracks = () => {
   };
 
   const handleDeleteCriterion = async (id: string) => {
+    const { data: oldCriterionData } = await supabase.from("criteria").select("*").eq("id", id).single();
+
     const { error } = await supabase.from("criteria").delete().eq("id", id);
 
     if (error) {
@@ -191,6 +205,7 @@ const AdminTracks = () => {
       });
     } else {
       toast({ title: "Question deleted successfully" });
+      logAdminAction("CRITERION_DELETED", "criteria", id, oldCriterionData, null);
       if (selectedTrack) openCriteriaDialog(selectedTrack);
     }
   };

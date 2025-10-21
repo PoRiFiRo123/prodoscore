@@ -7,6 +7,7 @@ import { Lock, FileText, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { logAdminAction } from "@/lib/auditLog";
 
 export default function FinalizationWorkflow() {
   const { toast } = useToast();
@@ -28,10 +29,18 @@ export default function FinalizationWorkflow() {
 
     setSealing(true);
     try {
-      const { error } = await supabase
+      const { data: oldRoomsData, error: fetchError } = await supabase
+        .from("rooms")
+        .select("id, is_locked")
+        .eq("track_id", selectedTrack);
+
+      if (fetchError) throw fetchError;
+
+      const { data: updatedRooms, error } = await supabase
         .from("rooms")
         .update({ is_locked: true })
-        .eq("track_id", selectedTrack);
+        .eq("track_id", selectedTrack)
+        .select();
 
       if (error) throw error;
 
@@ -39,6 +48,19 @@ export default function FinalizationWorkflow() {
         title: "Track Sealed",
         description: "All rooms in this track have been locked",
       });
+
+      // Log action for each room that was updated
+      if (oldRoomsData && updatedRooms) {
+        updatedRooms.forEach(newRoom => {
+          const oldRoom = oldRoomsData.find(oldR => oldR.id === newRoom.id);
+          if (oldRoom && oldRoom.is_locked === false) { // Only log if the state actually changed to locked
+            logAdminAction("ROOM_LOCKED_BY_TRACK_SEAL", "rooms", newRoom.id, { is_locked: false }, { is_locked: true });
+          }
+        });
+      }
+
+      logAdminAction("TRACK_SEALED", "tracks", selectedTrack, { track_id: selectedTrack, sealed: false }, { track_id: selectedTrack, sealed: true });
+
     } catch (error: any) {
       console.error("Seal error:", error);
       toast({
@@ -120,6 +142,8 @@ export default function FinalizationWorkflow() {
         title: "Report Generated",
         description: "Winners report has been downloaded",
       });
+      logAdminAction("REPORT_GENERATED", "reports", selectedTrack, null, { track_id: selectedTrack, report_type: "winners" });
+
     } catch (error: any) {
       console.error("Generation error:", error);
       toast({
