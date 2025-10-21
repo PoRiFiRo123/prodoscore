@@ -3,8 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Snippet {
   id: string;
+  judge_id: string;
   shortcut: string;
   full_text: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export function useSnippetExpansion() {

@@ -5,14 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit2, Save, X } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Snippet {
   id: string;
+  judge_id: string;
   shortcut: string;
   full_text: string;
-  created_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export default function QuickSnippets() {
