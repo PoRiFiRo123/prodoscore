@@ -97,24 +97,51 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email: string
+          email: string | null
           full_name: string | null
           id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
-          email: string
+          email?: string | null
           full_name?: string | null
           id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
-          email?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      quick_snippets: {
+        Row: {
+          created_at: string | null
+          full_text: string
+          id: string
+          judge_id: string
+          shortcut: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_text: string
+          id?: string
+          judge_id: string
+          shortcut: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_text?: string
+          id?: string
+          judge_id?: string
+          shortcut?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -218,11 +245,11 @@ export type Database = {
           id: string
           members: string[] | null
           name: string
+          problem_statement: string | null
           room_id: string
           team_number: string
           total_score: number | null
           track_id: string
-          problem_statement: string
         }
         Insert: {
           college?: string | null
@@ -230,11 +257,11 @@ export type Database = {
           id?: string
           members?: string[] | null
           name: string
+          problem_statement?: string | null
           room_id: string
           team_number: string
           total_score?: number | null
           track_id: string
-          problem_statement: string
         }
         Update: {
           college?: string | null
@@ -242,11 +269,11 @@ export type Database = {
           id?: string
           members?: string[] | null
           name?: string
+          problem_statement?: string | null
           room_id?: string
           team_number?: string
           total_score?: number | null
           track_id?: string
-          problem_statement: string
         }
         Relationships: [
           {
