@@ -144,80 +144,108 @@ const Dashboard = () => {
   };
 
   const Sidebar = () => (
-    <aside className={`fixed top-0 left-0 h-full bg-card border-r z-50 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:relative`}>
-        <div className="flex items-center justify-between p-4 border-b">
-            <button 
-              onClick={() => navigate("/")}
-              className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              <div className="relative">
-                <Trophy className="h-8 w-8 text-primary" />
-                <Award className="h-4 w-4 text-accent absolute -top-1 -right-1" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  PEMS Admin
-                </h1>
-              </div>
-            </button>
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(false)}>
-                <X className="h-6 w-6" />
-            </Button>
-        </div>
-        <nav className="p-4 space-y-2">
-            {navItems.map(({ value, label, icon: Icon }) => (
-                <Button
-                    key={value}
-                    variant={activeTab === value ? "secondary" : "ghost"}
-                    className="w-full justify-start"
-                    onClick={() => handleTabChange(value)}
+    <aside className={`fixed top-0 left-0 h-screen w-64 bg-card border-r z-50 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
+        <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between p-4 border-b">
+                <button 
+                  onClick={() => navigate("/")}
+                  className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {label}
+                  <div className="relative">
+                    <Trophy className="h-8 w-8 text-primary" />
+                    <Award className="h-4 w-4 text-accent absolute -top-1 -right-1" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                      PEMS Admin
+                    </h1>
+                  </div>
+                </button>
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(false)}>
+                    <X className="h-6 w-6" />
                 </Button>
-            ))}
-        </nav>
+            </div>
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+                {navItems.map(({ value, label, icon: Icon }) => (
+                    <Button
+                        key={value}
+                        variant={activeTab === value ? "secondary" : "ghost"}
+                        className="w-full justify-start"
+                        onClick={() => handleTabChange(value)}
+                    >
+                        <Icon className="h-4 w-4 mr-2" />
+                        {label}
+                    </Button>
+                ))}
+            </nav>
+        </div>
     </aside>
   );
 
   return (
-    <div className="min-h-screen bg-background flex">
-        <Sidebar />
-        <div className="flex flex-col flex-1 md:ml-64">
-            <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-                <div className="container mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
-                            <Menu className="h-6 w-6" />
-                        </Button>
-                        <div className="flex-1" />
-                        <div className="flex items-center gap-4">
-                            <div className="text-right">
-                                <p className="text-sm font-medium">{userName}</p>
-                                <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={handleSignOut}>
-                                <LogOut className="h-4 w-4 mr-2" />
-                                Sign Out
+    <div className="min-h-screen bg-background">
+        {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsSidebarOpen(false)} />}
+        
+        <div className="flex min-h-screen">
+            <Sidebar />
+            
+            <div className="flex flex-col flex-1 md:ml-64">
+                <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-30">
+                    <div className="container mx-auto px-4 py-4">
+                        <div className="flex items-center justify-between">
+                            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
+                                <Menu className="h-6 w-6" />
                             </Button>
+                            <div className="flex-1" />
+                            <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                    <p className="text-sm font-medium">{userName}</p>
+                                    <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+                                </div>
+                                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                                    <LogOut className="h-4 w-4 mr-2" />
+                                    Sign Out
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <main className="container mx-auto px-4 py-8 flex-1">
-                {renderContent()}
-            </main>
-            
-            <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
-              <div className="container mx-auto px-4 py-6">
-                <p className="text-sm text-center text-muted-foreground">
-                  Developed by Nishit R Kirani with ❤️
-                </p>
-              </div>
-            </footer>
+                <main className="flex-1 container mx-auto px-4 py-8">
+                    <div className="bg-card p-6 rounded-lg shadow-sm">
+                        {renderContent()}
+                    </div>
+                </main>
+                
+                <footer className="border-t bg-white mt-auto">
+                  <div className="container mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="flex items-center gap-4">
+                        <img src="/logo.svg" alt="BNM 25" className="h-12" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">BNM Institute of Technology</p>
+                          <p className="text-xs text-gray-600">Academic Excellence</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-4">
+                        <img src="/bnmit.svg" alt="Event Committee" className="h-12" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">Event Management Committee</p>
+                          <p className="text-xs text-gray-600">Prodathon Organizers</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-600">Developed by <span className="font-semibold text-gray-900">Nishit R Kirani</span></p>
+                        <img src="/logo.svg" alt="Developer" className="h-6" />
+                        <p className="text-sm text-gray-600">© 2025</p>
+                      </div>
+                    </div>
+                  </div>
+                </footer>
+            </div>
         </div>
-        {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsSidebarOpen(false)} />} 
     </div>
   );
 };
