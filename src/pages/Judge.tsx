@@ -20,6 +20,7 @@ import {
 import { Trophy, Award, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import JudgeScoring from "@/components/judge/JudgeScoring";
+import { Link } from "react-router-dom";
 
 interface Room {
   id: string;
@@ -113,7 +114,8 @@ const Judge = () => {
           setRoom(data);
           setShowNameInput(true);
           sessionStorage.setItem("judge_room", JSON.stringify(data));
-        } else {
+        }
+        else {
           toast({
             title: "No Judges Assigned",
             description: "There are no judges assigned to this room.",
@@ -121,13 +123,15 @@ const Judge = () => {
           });
         }
       }
-    } catch (error) {
+    }
+    catch (error) {
       toast({
         title: "Error",
         description: "Failed to verify passcode.",
         variant: "destructive",
       });
-    } finally {
+    }
+    finally {
       setLoading(false);
     }
   };
@@ -144,7 +148,8 @@ const Judge = () => {
           title: "Welcome!",
           description: `Ready to evaluate teams, ${judgeName}`,
         });
-      } else {
+      }
+      else {
         toast({
           title: "Judge Not Found",
           description: "Please select a valid judge name.",
@@ -172,7 +177,7 @@ const Judge = () => {
       <header className="border-b bg-card/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <button 
+            <button
               onClick={() => window.location.href = "/"}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
             >
@@ -282,13 +287,20 @@ const Judge = () => {
             </Card>
           </div>
         ) : (
-          <JudgeScoring
-            roomId={room.id}
-            judgeName={judgeName}
-            judgeId={judgeId}
-            selectedTeam={selectedTeam}
-            setSelectedTeam={setSelectedTeam}
-          />
+          <div>
+            <div className="mb-4">
+              <Link to="/judge/snippets">
+                <Button>Manage Snippets</Button>
+              </Link>
+            </div>
+            <JudgeScoring
+              roomId={room.id}
+              judgeName={judgeName}
+              judgeId={judgeId}
+              selectedTeam={selectedTeam}
+              setSelectedTeam={setSelectedTeam}
+            />
+          </div>
         )}
       </main>
 

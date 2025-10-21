@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Save, Users, Building, FileText, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import LiveTeamStats from "./LiveTeamStats";
+import { useSnippets } from "@/hooks/useSnippets";
+import { autoExpandSnippets } from "@/lib/utils";
 
 interface Team {
   id: string;
@@ -31,8 +33,8 @@ interface JudgeScoringProps {
   roomId: string;
   judgeName: string;
   judgeId: string | null;
-  selectedTeam: Team | null; // Added selectedTeam prop
-  setSelectedTeam: (team: Team | null) => void; // Added setSelectedTeam prop
+  selectedTeam: Team | null;
+  setSelectedTeam: (team: Team | null) => void;
 }
 
 const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTeam }: JudgeScoringProps) => {
@@ -43,12 +45,14 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
   const [dropdownSelections, setDropdownSelections] = useState<Record<string, string>>({});
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
-  const [isRoomLocked, setIsRoomLocked] = useState(false); // New state for room lock status
+  const [isRoomLocked, setIsRoomLocked] = useState(false);
+  const [trackId, setTrackId] = useState<string | null>(null);
+  const { snippets, loading: snippetsLoading } = useSnippets(trackId);
 
   useEffect(() => {
     fetchTeams();
-    fetchCriteria();
-    fetchRoomLockStatus(); // Fetch room lock status
+    fetchCriteriaAndTrack();
+    fetchRoomLockStatus();
   }, [roomId]);
 
   useEffect(() => {
@@ -118,14 +122,14 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
 
     if (error) {
       console.error("Error fetching teams:", error);
-      setTeams([]); // Set teams to an empty array on error
+      setTeams([]);
       return;
     }
 
     setTeams((data as Team[]) || []);
   };
 
-  const fetchCriteria = async () => {
+  const fetchCriteriaAndTrack = async () => {
     const { data: roomData } = await supabase
       .from("rooms")
       .select("track_id")
@@ -133,6 +137,8 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
       .single();
 
     if (!roomData) return;
+
+    setTrackId(roomData.track_id);
 
     const { data } = await supabase
       .from("criteria")
@@ -150,7 +156,7 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
       .from("scores")
       .select("criterion_id, score, comment")
       .eq("team_id", selectedTeam.id)
-      .eq("judge_id", judgeId); // Use judgeId here
+      .eq("judge_id", judgeId);
 
     if (data && data.length > 0) {
       const scoresMap: Record<string, number> = {};
@@ -192,15 +198,15 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
         .from("scores")
         .delete()
         .eq("team_id", selectedTeam.id)
-        .eq("judge_id", judgeId); // Use judgeId here
+        .eq("judge_id", judgeId);
 
       const scoreEntries = criteria.map((criterion) => ({
         team_id: selectedTeam.id,
-        judge_id: judgeId, // Use judgeId here
+        judge_id: judgeId,
         criterion_id: criterion.id,
         score: scores[criterion.id] || 0,
         comment: comment,
-        judge_name: judgeName, // Still keep judge_name for display/denormalization if needed
+        judge_name: judgeName,
       }));
 
       const { error } = await supabase.from("scores").insert(scoreEntries);
@@ -348,7 +354,7 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
                     {criterion.type === "text" ? (
                       <div className="space-y-2">
                         <Input
-                          id="criterion.id"
+                          id={criterion.id}
                           type="number"
                           min="0"
                           max={criterion.max_score}
@@ -363,7 +369,7 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
                            }
                           }
                           className="text-lg"
-                          disabled={isRoomLocked} // Disable if room is locked
+                          disabled={isRoomLocked}
                         />
                         <p className="text-sm text-muted-foreground">
                           Maximum: {criterion.max_score} points
@@ -387,7 +393,7 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
                             });
                           }
                         }}
-                        disabled={isRoomLocked} // Disable if room is locked
+                        disabled={isRoomLocked}
                       >
                         <SelectTrigger className="text-lg bg-popover">
                           <SelectValue>
@@ -417,20 +423,41 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
                 <Label htmlFor="comment" className="text-base font-semibold">
                   Comments (Optional)
                 </Label>
+                <div className="flex flex-wrap gap-2 py-2">
+                  {snippetsLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading snippets...</p>
+                  ) : snippets.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No snippets available for this track.</p>
+                  ) : (
+                    snippets.map((snippet) => (
+                      <Button 
+                          key={snippet.id}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setComment(prev => `${prev}${prev ? ' ' : ''}${snippet.full_text}`)}
+                      >
+                          {snippet.shortcut}
+                      </Button>
+                    ))
+                  )}
+                </div>
                 <Textarea
                   id="comment"
                   value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  placeholder="Add your feedback and observations here..."
+                  onChange={(e) => {
+                    const value = autoExpandSnippets(e.target.value, snippets);
+                    setComment(value);
+                  }}
+                  placeholder="Type your feedback, or use a snippet shortcut and press space..."
                   rows={5}
                   className="resize-none"
-                  disabled={isRoomLocked} // Disable if room is locked
+                  disabled={isRoomLocked}
                 />
               </div>
 
               <Button
                 onClick={handleSaveScores}
-                disabled={saving || isRoomLocked} // Disable if saving or room is locked
+                disabled={saving || isRoomLocked}
                 className="w-full h-12 text-lg font-semibold"
                 size="lg"
               >

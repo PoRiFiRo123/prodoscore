@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog, Activity, Upload, FileText, Lock } from "lucide-react";
+import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog, Activity, Upload, FileText, Lock, MessageSquare, Menu, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminTracks from "@/components/admin/AdminTracks";
 import AdminRooms from "@/components/admin/AdminRooms";
 import AdminTeams from "@/components/admin/AdminTeams";
 import AdminJudges from "@/components/admin/AdminJudges";
+import AdminSnippets from "@/components/admin/AdminSnippets";
 import Leaderboard from "@/components/Leaderboard";
 import { AdminOverview } from "@/components/admin/AdminOverview";
 import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
@@ -18,12 +18,32 @@ import BulkImportExport from "@/components/admin/BulkImportExport";
 import AuditLog from "@/components/admin/AuditLog";
 import FinalizationWorkflow from "@/components/admin/FinalizationWorkflow";
 
+const navItems = [
+  { value: "overview", label: "Overview", icon: LayoutDashboard },
+  { value: "analytics", label: "Analytics", icon: BarChart2 },
+  { value: "live", label: "Live", icon: Activity },
+  { value: "import-export", label: "Import/Export", icon: Upload },
+  { value: "audit", label: "Audit", icon: FileText },
+  { value: "finalize", label: "Finalize", icon: Lock },
+  { value: "user-roles", label: "User Roles", icon: UserCog },
+  { value: "tracks", label: "Tracks", icon: Target },
+  { value: "rooms", label: "Rooms", icon: DoorOpen },
+  { value: "teams", label: "Teams", icon: Users },
+  { value: "judges", label: "Judges", icon: Award },
+  { value: "snippets", label: "Snippets", icon: MessageSquare },
+  { value: "leaderboard", label: "Leaderboard", icon: Trophy },
+];
+
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const activeTab = location.hash.replace("#", "") || "overview";
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -34,7 +54,6 @@ const Dashboard = () => {
         return;
       }
 
-      // Get user profile and role
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
@@ -54,7 +73,6 @@ const Dashboard = () => {
       if (roleData) {
         setUserRole(roleData.role);
       } else {
-        // No role assigned - redirect to judge interface by default
         navigate("/judge");
       }
 
@@ -83,6 +101,13 @@ const Dashboard = () => {
     navigate("/auth");
   };
 
+  const handleTabChange = (value: string) => {
+    navigate(`#${value}`);
+    if(isSidebarOpen) {
+        setIsSidebarOpen(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -99,12 +124,28 @@ const Dashboard = () => {
     return null;
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-secondary to-background flex flex-col">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'overview': return <AdminOverview />;
+      case 'analytics': return <AdminAnalytics />;
+      case 'live': return <LiveAnalytics />;
+      case 'import-export': return <BulkImportExport />;
+      case 'audit': return <AuditLog />;
+      case 'finalize': return <FinalizationWorkflow />;
+      case 'user-roles': return <AdminUserRoles />;
+      case 'tracks': return <AdminTracks />;
+      case 'rooms': return <AdminRooms />;
+      case 'teams': return <AdminTeams />;
+      case 'judges': return <AdminJudges />;
+      case 'snippets': return <AdminSnippets />;
+      case 'leaderboard': return <Leaderboard isAdmin={true} />;
+      default: return <AdminOverview />;
+    }
+  };
+
+  const Sidebar = () => (
+    <aside className={`fixed top-0 left-0 h-full bg-card border-r z-50 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:relative`}>
+        <div className="flex items-center justify-between p-4 border-b">
             <button 
               onClick={() => navigate("/")}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
@@ -114,162 +155,69 @@ const Dashboard = () => {
                 <Award className="h-4 w-4 text-accent absolute -top-1 -right-1" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                   PEMS Admin
                 </h1>
-                <p className="text-xs text-muted-foreground">Evaluation Management</p>
               </div>
             </button>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium">{userName}</p>
-                <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(false)}>
+                <X className="h-6 w-6" />
+            </Button>
         </div>
-      </header>
+        <nav className="p-4 space-y-2">
+            {navItems.map(({ value, label, icon: Icon }) => (
+                <Button
+                    key={value}
+                    variant={activeTab === value ? "secondary" : "ghost"}
+                    className="w-full justify-start"
+                    onClick={() => handleTabChange(value)}
+                >
+                    <Icon className="h-4 w-4 mr-2" />
+                    {label}
+                </Button>
+            ))}
+        </nav>
+    </aside>
+  );
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 pb-20">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-12 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="overview" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Overview</span>
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
-              <BarChart2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Analytics</span>
-            </TabsTrigger>
-            <TabsTrigger value="live" className="gap-2">
-              <Activity className="h-4 w-4" />
-              <span className="hidden sm:inline">Live</span>
-            </TabsTrigger>
-            <TabsTrigger value="import-export" className="gap-2">
-              <Upload className="h-4 w-4" />
-              <span className="hidden sm:inline">Import/Export</span>
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Audit</span>
-            </TabsTrigger>
-            <TabsTrigger value="finalize" className="gap-2">
-              <Lock className="h-4 w-4" />
-              <span className="hidden sm:inline">Finalize</span>
-            </TabsTrigger>
-            <TabsTrigger value="user-roles" className="gap-2">
-              <UserCog className="h-4 w-4" />
-              <span className="hidden sm:inline">User Roles</span>
-            </TabsTrigger>
-            <TabsTrigger value="tracks" className="gap-2">
-              <Target className="h-4 w-4" />
-              <span className="hidden sm:inline">Tracks</span>
-            </TabsTrigger>
-            <TabsTrigger value="rooms" className="gap-2">
-              <DoorOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Rooms</span>
-            </TabsTrigger>
-            <TabsTrigger value="teams" className="gap-2">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">Teams</span>
-            </TabsTrigger>
-            <TabsTrigger value="judges" className="gap-2">
-              <Award className="h-4 w-4" />
-              <span className="hidden sm:inline">Judges</span>
-            </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="gap-2">
-              <Trophy className="h-4 w-4" />
-              <span className="hidden sm:inline">Leaderboard</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <AdminOverview />
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-4">
-            <AdminAnalytics />
-          </TabsContent>
-
-          <TabsContent value="live" className="space-y-4">
-            <LiveAnalytics />
-          </TabsContent>
-
-          <TabsContent value="import-export" className="space-y-4">
-            <BulkImportExport />
-          </TabsContent>
-
-          <TabsContent value="audit" className="space-y-4">
-            <AuditLog />
-          </TabsContent>
-
-          <TabsContent value="finalize" className="space-y-4">
-            <FinalizationWorkflow />
-          </TabsContent>
-
-          <TabsContent value="user-roles" className="space-y-4">
-            <AdminUserRoles />
-          </TabsContent>
-
-          <TabsContent value="tracks" className="space-y-4">
-            <AdminTracks />
-          </TabsContent>
-
-          <TabsContent value="rooms" className="space-y-4">
-            <AdminRooms />
-          </TabsContent>
-
-          <TabsContent value="teams" className="space-y-4">
-            <AdminTeams />
-          </TabsContent>
-
-          <TabsContent value="judges" className="space-y-4">
-            <AdminJudges />
-          </TabsContent>
-
-          <TabsContent value="leaderboard" className="space-y-4">
-            <Leaderboard isAdmin={true} />
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <img src="/bnmit.svg" alt="BNMIT Logo" className="h-12 w-auto" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">BNM Institute of Technology</p>
-                  <p className="text-xs text-muted-foreground">Academic Excellence</p>
+  return (
+    <div className="min-h-screen bg-background flex">
+        <Sidebar />
+        <div className="flex flex-col flex-1 md:ml-64">
+            <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+                <div className="container mx-auto px-4 py-4">
+                    <div className="flex items-center justify-between">
+                        <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsSidebarOpen(true)}>
+                            <Menu className="h-6 w-6" />
+                        </Button>
+                        <div className="flex-1" />
+                        <div className="flex items-center gap-4">
+                            <div className="text-right">
+                                <p className="text-sm font-medium">{userName}</p>
+                                <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={handleSignOut}>
+                                <LogOut className="h-4 w-4 mr-2" />
+                                Sign Out
+                            </Button>
+                        </div>
+                    </div>
                 </div>
+            </header>
+
+            <main className="container mx-auto px-4 py-8 flex-1">
+                {renderContent()}
+            </main>
+            
+            <footer className="border-t bg-card/80 backdrop-blur-sm mt-auto">
+              <div className="container mx-auto px-4 py-6">
+                <p className="text-sm text-center text-muted-foreground">
+                  Developed by Nishit R Kirani with ❤️
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <img src="/logo.svg" alt="EMC Logo" className="h-12 w-12" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Event Management Committee</p>
-                  <p className="text-xs text-muted-foreground">Prodathon Organizers</p>
-                </div>
-              </div>
-            </div>
-            <div className="text-center md:text-right">
-              <p className="text-sm text-muted-foreground">
-                Developed by <span className="font-semibold text-foreground">Nishit R Kirani</span>
-              </p>
-              <div className="flex items-center justify-center md:justify-end">
-                <img src="/bnmit.svg" alt="BNMIT Logo" className="h-6 w-auto mr-2" />
-                <p className="text-xs text-muted-foreground">© 2025</p>
-              </div>
-            </div>
-          </div>
+            </footer>
         </div>
-      </footer>
+        {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-40 md:hidden" onClick={() => setIsSidebarOpen(false)} />} 
     </div>
   );
 };
