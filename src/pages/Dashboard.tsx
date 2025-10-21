@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog } from "lucide-react";
+import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog, Activity, Upload, FileText, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminTracks from "@/components/admin/AdminTracks";
 import AdminRooms from "@/components/admin/AdminRooms";
@@ -13,6 +13,10 @@ import Leaderboard from "@/components/Leaderboard";
 import { AdminOverview } from "@/components/admin/AdminOverview";
 import { AdminAnalytics } from "@/components/admin/AdminAnalytics";
 import { AdminUserRoles } from "@/components/admin/AdminUserRoles";
+import LiveAnalytics from "@/components/admin/LiveAnalytics";
+import BulkImportExport from "@/components/admin/BulkImportExport";
+import AuditLog from "@/components/admin/AuditLog";
+import FinalizationWorkflow from "@/components/admin/FinalizationWorkflow";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -133,7 +137,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 pb-20">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 lg:grid-cols-12 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -141,6 +145,22 @@ const Dashboard = () => {
             <TabsTrigger value="analytics" className="gap-2">
               <BarChart2 className="h-4 w-4" />
               <span className="hidden sm:inline">Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="live" className="gap-2">
+              <Activity className="h-4 w-4" />
+              <span className="hidden sm:inline">Live</span>
+            </TabsTrigger>
+            <TabsTrigger value="import-export" className="gap-2">
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Import/Export</span>
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Audit</span>
+            </TabsTrigger>
+            <TabsTrigger value="finalize" className="gap-2">
+              <Lock className="h-4 w-4" />
+              <span className="hidden sm:inline">Finalize</span>
             </TabsTrigger>
             <TabsTrigger value="user-roles" className="gap-2">
               <UserCog className="h-4 w-4" />
@@ -174,6 +194,22 @@ const Dashboard = () => {
 
           <TabsContent value="analytics" className="space-y-4">
             <AdminAnalytics />
+          </TabsContent>
+
+          <TabsContent value="live" className="space-y-4">
+            <LiveAnalytics />
+          </TabsContent>
+
+          <TabsContent value="import-export" className="space-y-4">
+            <BulkImportExport />
+          </TabsContent>
+
+          <TabsContent value="audit" className="space-y-4">
+            <AuditLog />
+          </TabsContent>
+
+          <TabsContent value="finalize" className="space-y-4">
+            <FinalizationWorkflow />
           </TabsContent>
 
           <TabsContent value="user-roles" className="space-y-4">
