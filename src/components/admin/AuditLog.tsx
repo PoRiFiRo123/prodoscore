@@ -242,8 +242,8 @@ const AuditLog = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {currentLogs.map((log) => (
-                    <TableRow key={log.id}>
+                  {currentLogs.map((log, index) => (
+                    <TableRow key={`${log.id}-${index}`}>
                       <TableCell>{format(parseISO(log.timestamp), "MMM dd, yyyy HH:mm:ss")}</TableCell>
                       <TableCell>{log.action}</TableCell>
                       <TableCell>{log.entity}</TableCell>

@@ -288,11 +288,6 @@ const Judge = () => {
           </div>
         ) : (
           <div>
-            <div className="mb-4">
-              <Link to="/judge/snippets">
-                <Button>Manage Snippets</Button>
-              </Link>
-            </div>
             <JudgeScoring
               roomId={room.id}
               judgeName={judgeName}
