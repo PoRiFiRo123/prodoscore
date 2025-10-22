@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import LiveTeamStats from "./LiveTeamStats";
 import { useSnippets } from "@/hooks/useSnippets";
 import { autoExpandSnippets } from "@/lib/utils";
+import { logAdminAction } from "@/lib/auditLog";
 
 interface Team {
   id: string;
@@ -194,6 +195,19 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
     setSaving(true);
 
     try {
+      const { data: previousScoresData } = await supabase
+        .from("scores")
+        .select("criterion_id, score, comment")
+        .eq("team_id", selectedTeam.id)
+        .eq("judge_id", judgeId);
+
+      const previousScores = previousScoresData || [];
+      const previousComment = previousScores.length > 0 ? previousScores[0].comment : "";
+      const previousState = {
+        scores: previousScores.reduce((acc: any, s: any) => ({ ...acc, [s.criterion_id]: s.score }), {}),
+        comment: previousComment,
+      };
+
       await supabase
         .from("scores")
         .delete()
@@ -212,6 +226,19 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
       const { error } = await supabase.from("scores").insert(scoreEntries);
 
       if (error) throw error;
+
+      const newState = {
+        scores: scores,
+        comment: comment
+      };
+
+      await logAdminAction(
+        previousScores.length > 0 ? "SCORE_UPDATED" : "SCORE_SUBMITTED",
+        "scores",
+        selectedTeam.id,
+        previousState,
+        newState
+      );
 
       toast({
         title: "Scores saved",
@@ -317,16 +344,16 @@ const JudgeScoring = ({ roomId, judgeName, judgeId, selectedTeam, setSelectedTea
             </CardHeader>
             <CardContent className="pt-6 space-y-4">
                 <div>
-                    <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><FileText className="h-5 w-5"/> Problem Statement</h3>
+                    <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><FileText className="h-5 w-5" /> Problem Statement</h3>
                     <p className="text-muted-foreground bg-secondary/30 p-3 rounded-md border">{selectedTeam.problem_statement || "Not provided."}</p>
                 </div>
                 <div>
-                    <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><Users className="h-5 w-5"/> Team Members</h3>
+                    <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><Users className="h-5 w-5" /> Team Members</h3>
                     <p className="text-muted-foreground bg-secondary/30 p-3 rounded-md border">{selectedTeam.members?.join(", ") || "No members listed."}</p>
                 </div>
                 {selectedTeam.college &&
                     <div>
-                        <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><Building className="h-5 w-5"/> College</h3>
+                        <h3 className="font-semibold text-lg flex items-center gap-2 mb-2"><Building className="h-5 w-5" /> College</h3>
                         <p className="text-muted-foreground bg-secondary/30 p-3 rounded-md border">{selectedTeam.college}</p>
                     </div>
                 }

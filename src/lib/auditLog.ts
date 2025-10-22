@@ -11,7 +11,7 @@ export const logAdminAction = async (action: string, entity: string, entityId: s
 
   const { data: profile, error: fetchError } = await supabase
     .from('profiles')
-    .select('id, email, audit_logs')
+    .select('id, email, full_name, audit_logs')
     .eq('id', user.id)
     .single();
 
@@ -33,6 +33,7 @@ export const logAdminAction = async (action: string, entity: string, entityId: s
     entity_id: entityId,
     admin_id: user.id,
     admin_email: profile.email,
+    admin_full_name: profile.full_name,
     previous_state: previousState,
     new_state: newState,
   };

@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parseISO } from "date-fns";
 import { Download } from "lucide-react";
-import { useToast } from "@/hooks/use-toast"; // Import useToast
+import { useToast } from "@/hooks/use-toast";
 
 interface AuditLogEntry {
   id: string;
@@ -19,12 +19,13 @@ interface AuditLogEntry {
   entity_id: string;
   admin_id: string;
   admin_email: string;
+  admin_full_name?: string;
   previous_state: any;
   new_state: any;
 }
 
 const AuditLog = () => {
-  const { toast } = useToast(); // Initialize useToast
+  const { toast } = useToast();
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [filteredLogs, setFilteredLogs] = useState<AuditLogEntry[]>([]);
   const [filters, setFilters] = useState({
@@ -41,9 +42,10 @@ const AuditLog = () => {
     "TEAM_CREATED", "TEAM_UPDATED", "TEAM_DELETED",
     "JUDGE_CREATED", "JUDGE_ROOM_ASSIGNED", "JUDGE_ROOM_UNASSIGNED",
     "CRITERION_CREATED", "CRITERION_DELETED",
-    "REPORT_GENERATED", "TRACK_SEALED"
+    "REPORT_GENERATED", "TRACK_SEALED",
+    "SCORE_SUBMITTED", "SCORE_UPDATED"
   ];
-  const entityTypes = ["tracks", "rooms", "teams", "judges", "criteria", "judge_assignments", "reports"];
+  const entityTypes = ["tracks", "rooms", "teams", "judges", "criteria", "judge_assignments", "reports", "scores"];
 
   useEffect(() => {
     fetchAuditLogs();
@@ -54,24 +56,20 @@ const AuditLog = () => {
   }, [auditLogs, filters]);
 
   const fetchAuditLogs = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: profile, error } = await supabase
+    const { data: profiles, error } = await supabase
       .from("profiles")
-      .select("audit_logs")
-      .eq("id", user.id)
-      .single();
+      .select("audit_logs");
 
     if (error) {
       console.error("Error fetching audit logs:", error);
-    } else if (profile && profile.audit_logs) {
-      // Ensure logs are sorted by timestamp in descending order
-      const sortedLogs = [...profile.audit_logs].sort((a: any, b: any) => 
-        parseISO(b.timestamp).getTime() - parseISO(a.timestamp).getTime()
-      ) as AuditLogEntry[];
-      setAuditLogs(sortedLogs);
+      return;
     }
+
+    const allLogs = profiles
+      .flatMap((profile: any) => profile.audit_logs || [])
+      .sort((a: any, b: any) => parseISO(b.timestamp).getTime() - parseISO(a.timestamp).getTime()) as AuditLogEntry[];
+
+    setAuditLogs(allLogs);
   };
 
   const applyFilters = () => {
@@ -100,10 +98,9 @@ const AuditLog = () => {
     }
 
     setFilteredLogs(tempLogs);
-    setCurrentPage(1); // Reset to first page on filter change
+    setCurrentPage(1);
   };
 
-  // Pagination
   const indexOfLastLog = currentPage * logsPerPage;
   const indexOfFirstLog = indexOfLastLog - logsPerPage;
   const currentLogs = filteredLogs.slice(indexOfFirstLog, indexOfLastLog);
@@ -119,7 +116,6 @@ const AuditLog = () => {
       dataStr = JSON.stringify(filteredLogs, null, 2);
       filename += ".json";
     } else {
-      // CSV conversion for a flat structure, nested objects will be stringified
       const headers = Object.keys(filteredLogs[0] || {}).join(",");
       const rows = filteredLogs.map(log => 
         Object.values(log).map(value => {
@@ -252,7 +248,7 @@ const AuditLog = () => {
                       <TableCell>{log.action}</TableCell>
                       <TableCell>{log.entity}</TableCell>
                       <TableCell>{log.entity_id.substring(0, 8)}...</TableCell>
-                      <TableCell>{log.admin_email}</TableCell>
+                      <TableCell>{log.admin_full_name || log.admin_email}</TableCell>
                       <TableCell className="text-right">
                         <Dialog>
                           <DialogTrigger asChild>
@@ -266,7 +262,7 @@ const AuditLog = () => {
                               <div>
                                 <p className="font-medium">Action: <span className="font-normal">{log.action}</span></p>
                                 <p className="font-medium">Entity: <span className="font-normal">{log.entity} (ID: {log.entity_id})</span></p>
-                                <p className="font-medium">Performed By: <span className="font-normal">{log.admin_email}</span></p>
+                                <p className="font-medium">Performed By: <span className="font-normal">{log.admin_full_name || log.admin_email}</span></p>
                                 <p className="font-medium">Timestamp: <span className="font-normal">{format(parseISO(log.timestamp), "MMM dd, yyyy HH:mm:ss")}
                                   </span></p>
                               </div>
@@ -295,7 +291,6 @@ const AuditLog = () => {
                 </TableBody>
               </Table>
 
-              {/* Pagination controls */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center space-x-2 mt-4">
                   <Button
