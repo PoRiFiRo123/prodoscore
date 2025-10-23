@@ -24,6 +24,33 @@ export default function FinalizationWorkflow() {
     },
   });
 
+  const calculateAndStoreTotalScoresForTrack = async (trackId: string) => {
+    const { data: teamsInTrack, error: teamsError } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("track_id", trackId);
+
+    if (teamsError) throw teamsError;
+
+    for (const team of teamsInTrack) {
+      const { data: scoresData, error: scoresError } = await supabase
+        .from("scores")
+        .select("score")
+        .eq("team_id", team.id);
+
+      if (scoresError) throw scoresError;
+
+      const totalScore = scoresData.reduce((sum, score) => sum + score.score, 0);
+
+      const { error: updateError } = await supabase
+        .from("teams")
+        .update({ total_score: totalScore })
+        .eq("id", team.id);
+
+      if (updateError) throw updateError;
+    }
+  };
+
   const handleSealTrack = async () => {
     if (!selectedTrack) return;
 
@@ -78,6 +105,9 @@ export default function FinalizationWorkflow() {
 
     setGenerating(true);
     try {
+      // First, calculate and update total scores for all teams in the selected track
+      await calculateAndStoreTotalScoresForTrack(selectedTrack);
+
       // Fetch teams and their scores
       const { data: teams, error: teamsError } = await supabase
         .from("teams")
