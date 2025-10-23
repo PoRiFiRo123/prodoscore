@@ -5,15 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, UserPlus } from "lucide-react";
+import { Plus, Trash2, UserPlus, Edit, MoreVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/auditLog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Judge {
   id: string;
-  email: string | null; // Email can now be null
+  email: string | null;
   full_name: string | null;
   assigned_rooms: { room_id: string; rooms: { name: string } }[];
 }
@@ -28,11 +36,15 @@ const AdminJudges = () => {
   const { toast } = useToast();
   const [judges, setJudges] = useState<Judge[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [open, setOpen] = useState(false);
-  const [assignOpen, setAssignOpen] = useState(false);
+  const [createJudgeDialogOpen, setCreateJudgeDialogOpen] = useState(false);
+  const [assignRoomDialogOpen, setAssignRoomDialogOpen] = useState(false);
+  const [editJudgeDialogOpen, setEditJudgeDialogOpen] = useState(false);
+  const [deleteJudgeDialogOpen, setDeleteJudgeDialogOpen] = useState(false);
   const [selectedJudge, setSelectedJudge] = useState<string>("");
   const [selectedRoom, setSelectedRoom] = useState<string>("");
-  const [newJudgeFullName, setNewJudgeFullName] = useState(""); // Only full name needed now
+  const [newJudgeFullName, setNewJudgeFullName] = useState("");
+  const [editingJudge, setEditingJudge] = useState<Judge | null>(null);
+  const [deletingJudge, setDeletingJudge] = useState<Judge | null>(null);
 
   useEffect(() => {
     fetchJudges();
@@ -40,41 +52,69 @@ const AdminJudges = () => {
   }, []);
 
   const fetchJudges = async () => {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select(`
-        id,
-        email,
-        full_name,
-        user_roles!inner(role)
-      `)
-      .eq("user_roles.role", "judge");
+    try {
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          email,
+          full_name,
+          user_roles!inner(role)
+        `)
+        .eq("user_roles.role", "judge");
 
-    if (profiles) {
-      const judgesWithRooms = await Promise.all(
-        profiles.map(async (profile) => {
-          const { data: assignments } = await supabase
-            .from("judge_assignments")
-            .select("room_id, rooms(name)")
-            .eq("judge_id", profile.id);
+      if (profilesError) {
+        throw profilesError;
+      }
 
-          return {
-            ...profile,
-            assigned_rooms: assignments || [],
-          };
-        })
-      );
+      if (profiles) {
+        const judgesWithRooms = await Promise.all(
+          profiles.map(async (profile) => {
+            const { data: assignments, error: assignmentsError } = await supabase
+              .from("judge_assignments")
+              .select("room_id, rooms(name)")
+              .eq("judge_id", profile.id);
 
-      setJudges(judgesWithRooms);
+            if (assignmentsError) {
+              // Log or handle individual assignment fetch errors if necessary
+              console.error(`Error fetching assignments for judge ${profile.id}:`, assignmentsError);
+            }
+
+            return {
+              ...profile,
+              assigned_rooms: assignments || [],
+            };
+          })
+        );
+
+        setJudges(judgesWithRooms);
+      }
+    } catch (error: any) {
+      console.error("Error fetching judges:", error);
+      toast({
+        title: "Error loading judges",
+        description: error.message || "Failed to load judge data. Please check RLS policies or network connection.",
+        variant: "destructive",
+      });
     }
   };
 
   const fetchRooms = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("rooms")
       .select("id, name, tracks(name)")
       .order("name");
-    setRooms(data || []);
+    
+    if (error) {
+      console.error("Error fetching rooms:", error);
+      toast({
+        title: "Error loading rooms",
+        description: error.message || "Failed to load room data.",
+        variant: "destructive",
+      });
+    } else {
+      setRooms(data || []);
+    }
   };
 
   const handleCreateJudge = async (e: React.FormEvent) => {
@@ -87,7 +127,6 @@ const AdminJudges = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Include Authorization header if the Edge Function requires JWT verification
           ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({ fullName: newJudgeFullName }),
@@ -104,17 +143,95 @@ const AdminJudges = () => {
         description: data.message || "New judge has been created successfully.",
       });
 
-      // Assuming the edge function returns the created judge's ID and name if successful
       if (data.judgeId) {
         logAdminAction("JUDGE_CREATED", "judges", data.judgeId, null, { id: data.judgeId, full_name: newJudgeFullName });
       }
 
       fetchJudges();
-      setOpen(false);
-      setNewJudgeFullName(""); // Clear the input
+      setCreateJudgeDialogOpen(false);
+      setNewJudgeFullName("");
     } catch (error: any) {
       toast({
         title: "Error creating judge",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleUpdateJudge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingJudge) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const oldJudgeData = { ...editingJudge };
+
+      const response = await fetch('https://xrlzqtdhzgnjvmdycljs.supabase.co/functions/v1/update-judge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ judgeId: editingJudge.id, fullName: editingJudge.full_name }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update judge');
+      }
+
+      toast({
+        title: "Judge updated",
+        description: data.message || "Judge's full name has been updated successfully.",
+      });
+      logAdminAction("JUDGE_UPDATED", "profiles", editingJudge.id, oldJudgeData, data.judge);
+      fetchJudges();
+      setEditJudgeDialogOpen(false);
+      setEditingJudge(null);
+    } catch (error: any) {
+      toast({
+        title: "Error updating judge",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteJudge = async () => {
+    if (!deletingJudge) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const oldJudgeData = { ...deletingJudge };
+
+      const response = await fetch('https://xrlzqtdhzgnjvmdycljs.supabase.co/functions/v1/delete-judge', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ judgeId: deletingJudge.id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete judge');
+      }
+
+      toast({
+        title: "Judge deleted",
+        description: data.message || "Judge and all associated assignments have been removed.",
+      });
+      logAdminAction("JUDGE_DELETED", "profiles", deletingJudge.id, oldJudgeData, null);
+      fetchJudges();
+      setDeleteJudgeDialogOpen(false);
+      setDeletingJudge(null);
+    } catch (error: any) {
+      toast({
+        title: "Error deleting judge",
         description: error.message,
         variant: "destructive",
       });
@@ -160,7 +277,7 @@ const AdminJudges = () => {
       });
       logAdminAction("JUDGE_ROOM_ASSIGNED", "judge_assignments", data.id, null, data);
       fetchJudges();
-      setAssignOpen(false);
+      setAssignRoomDialogOpen(false);
       setSelectedJudge("");
       setSelectedRoom("");
     }
@@ -204,7 +321,7 @@ const AdminJudges = () => {
           <p className="text-muted-foreground">Manage judges and room assignments</p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+          <Dialog open={assignRoomDialogOpen} onOpenChange={setAssignRoomDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
                 <UserPlus className="h-4 w-4 mr-2" />
@@ -248,7 +365,7 @@ const AdminJudges = () => {
                   </Select>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setAssignOpen(false)}>
+                  <Button variant="outline" onClick={() => setAssignRoomDialogOpen(false)}>
                     Cancel
                   </Button>
                   <Button onClick={handleAssignRoom}>Assign</Button>
@@ -257,7 +374,7 @@ const AdminJudges = () => {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={createJudgeDialogOpen} onOpenChange={setCreateJudgeDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 mr-2" />
@@ -280,9 +397,8 @@ const AdminJudges = () => {
                     required
                   />
                 </div>
-                {/* Email and Password fields removed as they are handled by Edge Function */}
                 <div className="flex justify-end gap-2">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+                  <Button type="button" variant="outline" onClick={() => setCreateJudgeDialogOpen(false)}>
                     Cancel
                   </Button>
                   <Button type="submit">Create</Button>
@@ -296,9 +412,39 @@ const AdminJudges = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {judges.map((judge) => (
           <Card key={judge.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-lg">{judge.full_name || "Unnamed Judge"}</CardTitle>
-              <CardDescription>{judge.email || "No Email Provided"}</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="space-y-0.5">
+                <CardTitle className="text-lg">{judge.full_name || "Unnamed Judge"}</CardTitle>
+                <CardDescription>{judge.email || "No Email Provided"}</CardDescription>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setEditingJudge(judge);
+                      setEditJudgeDialogOpen(true);
+                    }}
+                  >
+                    <Edit className="mr-2 h-4 w-4" /> Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setDeletingJudge(judge);
+                      setDeleteJudgeDialogOpen(true);
+                    }}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -333,6 +479,55 @@ const AdminJudges = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Edit Judge Dialog */}
+      <Dialog open={editJudgeDialogOpen} onOpenChange={setEditJudgeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Judge</DialogTitle>
+            <DialogDescription>Update the full name of the judge.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateJudge} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-judge-name">Full Name</Label>
+              <Input
+                id="edit-judge-name"
+                value={editingJudge?.full_name || ""}
+                onChange={(e) => setEditingJudge(editingJudge ? { ...editingJudge, full_name: e.target.value } : null)}
+                placeholder="e.g., Dr. Smith"
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditJudgeDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Judge Dialog */}
+      <Dialog open={deleteJudgeDialogOpen} onOpenChange={setDeleteJudgeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you absolutely sure?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the judge &quot;{deletingJudge?.full_name || deletingJudge?.email}&quot;
+              and remove their data from our servers, including all associated room assignments.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteJudgeDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteJudge}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
