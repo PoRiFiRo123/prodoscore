@@ -1,7 +1,4 @@
-import { Resend } from 'resend';
-
-// Initialize Resend with API key from environment variables
-const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY || '');
+import { supabase } from '@/integrations/supabase/client';
 
 export interface EmailOptions {
   to: string[];
@@ -86,17 +83,19 @@ export function replaceTemplateVariables(
 }
 
 /**
- * Send an email using Resend API
+ * Send an email using Supabase Edge Function (which calls Resend API server-side)
  */
 export async function sendEmail(options: EmailOptions) {
   try {
-    const { to, subject, html, from = 'Prodathon <noreply@prodathon.dev>' } = options;
+    const { to, subject, html } = options;
 
-    const { data, error } = await resend.emails.send({
-      from,
-      to,
-      subject,
-      html,
+    // Call Supabase Edge Function
+    const { data, error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to,
+        subject,
+        html,
+      },
     });
 
     if (error) {
@@ -104,7 +103,12 @@ export async function sendEmail(options: EmailOptions) {
       throw new Error(error.message || 'Failed to send email');
     }
 
-    return { success: true, data };
+    if (!data.success) {
+      console.error('Email sending failed:', data.error);
+      throw new Error(data.error || 'Failed to send email');
+    }
+
+    return { success: true, data: data.data };
   } catch (error: any) {
     console.error('Email sending failed:', error);
     return { success: false, error: error.message };
