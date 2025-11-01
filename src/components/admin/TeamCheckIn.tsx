@@ -438,67 +438,70 @@ export default function TeamCheckIn() {
   const percentageCheckedIn = totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Team Check-in</h2>
-        <p className="text-muted-foreground">Scan QR codes or manually check in teams</p>
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
+      <div className="space-y-1">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Team Check-in</h2>
+        <p className="text-sm md:text-base text-muted-foreground">Scan QR codes or manually check in teams</p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Teams</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+      {/* Statistics Cards - Mobile Optimized */}
+      <div className="grid grid-cols-3 gap-2 md:gap-4">
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium">Teams</CardTitle>
+            <Users className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalCount}</div>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold">{totalCount}</div>
+            <p className="text-xs text-muted-foreground hidden md:block">Total</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Checked In</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium">Checked In</CardTitle>
+            <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{checkedInCount}</div>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold text-green-600">{checkedInCount}</div>
+            <p className="text-xs text-muted-foreground hidden md:block">Done</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Check-in Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+        <Card className="shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium">Rate</CardTitle>
+            <CheckCircle className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{percentageCheckedIn}%</div>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold">{percentageCheckedIn}%</div>
+            <p className="text-xs text-muted-foreground hidden md:block">Complete</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Scanner Card with Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <QrCode className="h-5 w-5" />
+      {/* Scanner Card - Mobile Optimized */}
+      <Card className="shadow-sm">
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <QrCode className="h-4 w-4 md:h-5 md:w-5" />
             Check-in Scanner
           </CardTitle>
-          <CardDescription>Use camera to scan QR codes or enter manually</CardDescription>
+          <CardDescription className="text-xs md:text-sm">Use camera to scan QR codes or enter manually</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 p-4 md:p-6 pt-0 md:pt-0">
           <Tabs value={scanMode} onValueChange={(v) => {
             setScanMode(v as "camera" | "manual");
             if (v === "manual" && scanning) {
               stopScanning();
             }
           }}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="camera">
-                <Camera className="h-4 w-4 mr-2" />
-                Camera Scanner
+            <TabsList className="grid w-full grid-cols-2 h-auto">
+              <TabsTrigger value="camera" className="text-xs md:text-sm py-2">
+                <Camera className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                Camera
               </TabsTrigger>
-              <TabsTrigger value="manual">
-                <Keyboard className="h-4 w-4 mr-2" />
-                Manual Input
+              <TabsTrigger value="manual" className="text-xs md:text-sm py-2">
+                <Keyboard className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                Manual
               </TabsTrigger>
             </TabsList>
 
@@ -557,23 +560,23 @@ export default function TeamCheckIn() {
 
               <div className="flex gap-2 justify-center">
                 {!scanning ? (
-                  <Button onClick={startScanning} size="lg" className="min-w-[200px]">
-                    <Camera className="h-5 w-5 mr-2" />
-                    Start Camera Scanner
+                  <Button onClick={startScanning} size="lg" className="w-full md:w-auto md:min-w-[200px]">
+                    <Camera className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                    <span className="text-sm md:text-base">Start Scanner</span>
                   </Button>
                 ) : (
-                  <Button onClick={stopScanning} variant="destructive" size="lg" className="min-w-[200px]">
-                    <CameraOff className="h-5 w-5 mr-2" />
-                    Stop Scanner
+                  <Button onClick={stopScanning} variant="destructive" size="lg" className="w-full md:w-auto md:min-w-[200px]">
+                    <CameraOff className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                    <span className="text-sm md:text-base">Stop Scanner</span>
                   </Button>
                 )}
               </div>
             </TabsContent>
 
             <TabsContent value="manual" className="space-y-4">
-              <div className="max-w-md mx-auto space-y-4">
+              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="manual-qr">QR Code / Team Token</Label>
+                  <Label htmlFor="manual-qr" className="text-sm md:text-base">QR Code / Team Token</Label>
                   <Input
                     id="manual-qr"
                     placeholder="Paste or type the QR code here..."
@@ -584,14 +587,15 @@ export default function TeamCheckIn() {
                         handleManualCheckIn();
                       }
                     }}
+                    className="text-sm md:text-base h-11 md:h-10"
                   />
                   <p className="text-xs text-muted-foreground">
                     Enter the team's QR token and press Enter or click Check In
                   </p>
                 </div>
-                <Button onClick={handleManualCheckIn} className="w-full" size="lg">
-                  <CheckCircle className="h-5 w-5 mr-2" />
-                  Check In Team
+                <Button onClick={handleManualCheckIn} className="w-full h-11 md:h-10" size="lg">
+                  <CheckCircle className="h-4 w-4 md:h-5 md:w-5 mr-2" />
+                  <span className="text-sm md:text-base">Check In Team</span>
                 </Button>
               </div>
             </TabsContent>
@@ -599,27 +603,27 @@ export default function TeamCheckIn() {
         </CardContent>
       </Card>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+      {/* Filters - Mobile Optimized */}
+      <Card className="shadow-sm">
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+            <Filter className="h-4 w-4 md:h-5 md:w-5" />
             Filters & Search
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
+        <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-4">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search teams..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 h-11 md:h-10"
               />
             </div>
             <Select value={selectedTrack} onValueChange={setSelectedTrack}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11 md:h-10">
                 <SelectValue placeholder="All Tracks" />
               </SelectTrigger>
               <SelectContent>
@@ -632,7 +636,7 @@ export default function TeamCheckIn() {
               </SelectContent>
             </Select>
             <Select value={selectedRoom} onValueChange={setSelectedRoom}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11 md:h-10">
                 <SelectValue placeholder="All Rooms" />
               </SelectTrigger>
               <SelectContent>
@@ -645,7 +649,7 @@ export default function TeamCheckIn() {
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger>
+              <SelectTrigger className="h-11 md:h-10">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
@@ -656,113 +660,176 @@ export default function TeamCheckIn() {
             </Select>
           </div>
           <div className="mt-4 flex justify-end">
-            <Button onClick={exportCheckinList} variant="outline">
+            <Button onClick={exportCheckinList} variant="outline" className="w-full md:w-auto">
               <Download className="h-4 w-4 mr-2" />
-              Export Check-in List
+              Export
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Teams Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Teams ({filteredTeams.length})</CardTitle>
-          <CardDescription>Manage team check-in status</CardDescription>
+      {/* Teams List - Mobile: Cards, Desktop: Table */}
+      <Card className="shadow-sm">
+        <CardHeader className="p-4 md:p-6">
+          <CardTitle className="text-lg md:text-xl">Teams ({filteredTeams.length})</CardTitle>
+          <CardDescription className="text-xs md:text-sm">Manage team check-in status</CardDescription>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Team #</TableHead>
-                <TableHead>Team Name</TableHead>
-                <TableHead>Track</TableHead>
-                <TableHead>Room</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Checked In At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredTeams.map((team) => (
-                <TableRow key={team.id}>
-                  <TableCell className="font-medium">{team.team_number}</TableCell>
-                  <TableCell>{team.name}</TableCell>
-                  <TableCell>{team.tracks.name}</TableCell>
-                  <TableCell>{team.rooms.name}</TableCell>
-                  <TableCell>
+        <CardContent className="p-0 md:p-6 md:pt-0">
+          {/* Mobile View - Cards */}
+          <div className="block md:hidden space-y-2 px-4 pb-4">
+            {filteredTeams.map((team) => (
+              <Card key={team.id} className="border shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-sm truncate">{team.name}</h3>
+                      <p className="text-xs text-muted-foreground">Team #{team.team_number}</p>
+                    </div>
                     {team.checked_in ? (
-                      <Badge className="bg-green-500">
+                      <Badge className="bg-green-500 shrink-0 ml-2">
                         <CheckCircle className="h-3 w-3 mr-1" />
-                        Checked In
+                        <span className="text-xs">In</span>
                       </Badge>
                     ) : (
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="shrink-0 ml-2">
                         <XCircle className="h-3 w-3 mr-1" />
-                        Not Checked In
+                        <span className="text-xs">Out</span>
                       </Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {team.checked_in_at
-                      ? new Date(team.checked_in_at).toLocaleString()
-                      : "N/A"}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  </div>
+
+                  <div className="flex gap-2 text-xs">
+                    <Badge variant="outline" className="text-xs">{team.tracks.name}</Badge>
+                    <Badge variant="secondary" className="text-xs">{team.rooms.name}</Badge>
+                  </div>
+
+                  {team.checked_in_at && (
+                    <p className="text-xs text-muted-foreground">
+                      Checked in: {new Date(team.checked_in_at).toLocaleString()}
+                    </p>
+                  )}
+
+                  <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => setSelectedTeamQR(team)}
+                      className="flex-1 h-9"
                     >
-                      <QrCode className="h-4 w-4" />
+                      <QrCode className="h-3 w-3 mr-1" />
+                      <span className="text-xs">QR Code</span>
                     </Button>
                     <Button
                       size="sm"
                       variant={team.checked_in ? "destructive" : "default"}
                       onClick={() => handleManualToggle(team.id, team.checked_in)}
+                      className="flex-1 h-9"
                     >
-                      {team.checked_in ? "Undo" : "Check In"}
+                      <span className="text-xs">{team.checked_in ? "Undo" : "Check In"}</span>
                     </Button>
-                  </TableCell>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop View - Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Team #</TableHead>
+                  <TableHead>Team Name</TableHead>
+                  <TableHead>Track</TableHead>
+                  <TableHead>Room</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Checked In At</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredTeams.map((team) => (
+                  <TableRow key={team.id}>
+                    <TableCell className="font-medium">{team.team_number}</TableCell>
+                    <TableCell>{team.name}</TableCell>
+                    <TableCell>{team.tracks.name}</TableCell>
+                    <TableCell>{team.rooms.name}</TableCell>
+                    <TableCell>
+                      {team.checked_in ? (
+                        <Badge className="bg-green-500">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Checked In
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          Not Checked In
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {team.checked_in_at
+                        ? new Date(team.checked_in_at).toLocaleString()
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedTeamQR(team)}
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={team.checked_in ? "destructive" : "default"}
+                        onClick={() => handleManualToggle(team.id, team.checked_in)}
+                      >
+                        {team.checked_in ? "Undo" : "Check In"}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
           {filteredTeams.length === 0 && (
-            <div className="py-8 text-center text-muted-foreground">
+            <div className="py-8 text-center text-muted-foreground text-sm md:text-base px-4">
               No teams found matching the filters
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* QR Code Dialog */}
+      {/* QR Code Dialog - Mobile Optimized */}
       <Dialog open={!!selectedTeamQR} onOpenChange={() => setSelectedTeamQR(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selectedTeamQR?.name}</DialogTitle>
-            <DialogDescription>Team #{selectedTeamQR?.team_number}</DialogDescription>
+            <DialogTitle className="text-lg md:text-xl">{selectedTeamQR?.name}</DialogTitle>
+            <DialogDescription className="text-sm md:text-base">Team #{selectedTeamQR?.team_number}</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center py-6">
+          <div className="flex flex-col items-center py-4 md:py-6">
             {selectedTeamQR && (
               <>
-                <div className="bg-white p-4 rounded-lg">
+                <div className="bg-white p-3 md:p-4 rounded-lg">
                   <QRCodeSVG
                     value={selectedTeamQR.qr_token}
-                    size={200}
+                    size={Math.min(window.innerWidth - 100, 200)}
                     level="H"
                     includeMargin={true}
                   />
                 </div>
                 <div className="mt-4 w-full space-y-2">
-                  <p className="text-sm text-muted-foreground text-center">
-                    Team Token: <code className="bg-muted px-2 py-1 rounded">{selectedTeamQR.qr_token}</code>
-                  </p>
-                  <p className="text-sm text-muted-foreground text-center">
-                    Share link: {window.location.origin}/team-checkin/{selectedTeamQR.id}
+                  <div className="bg-muted p-2 md:p-3 rounded text-center">
+                    <p className="text-xs text-muted-foreground mb-1">Team Token:</p>
+                    <code className="text-xs md:text-sm font-mono break-all">{selectedTeamQR.qr_token}</code>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center break-all px-2">
+                    {window.location.origin}/team-checkin/{selectedTeamQR.id}
                   </p>
                 </div>
-                <div className="flex gap-2 mt-4">
+                <div className="flex flex-col sm:flex-row gap-2 mt-4 w-full">
                   <Button
                     onClick={() => {
                       navigator.clipboard.writeText(selectedTeamQR.qr_token);
@@ -773,6 +840,7 @@ export default function TeamCheckIn() {
                     }}
                     variant="outline"
                     size="sm"
+                    className="flex-1 h-10"
                   >
                     Copy Token
                   </Button>
@@ -788,6 +856,7 @@ export default function TeamCheckIn() {
                     }}
                     variant="outline"
                     size="sm"
+                    className="flex-1 h-10"
                   >
                     Copy Link
                   </Button>
