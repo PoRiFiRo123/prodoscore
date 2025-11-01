@@ -145,7 +145,10 @@ export const AdminSnippetsManager = () => {
         loading={loading}
         getRowId={(row: Snippet) => row.id}
         onUpdate={handleEdit}
-        onDelete={handleDelete}
+        onDelete={(id: string) => {
+          const snippet = snippets.find(s => s.id === id);
+          if (snippet) handleDelete(snippet);
+        }}
       />
 
       {/* Edit Dialog */}
