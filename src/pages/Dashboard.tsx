@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog, Activity, Upload, FileText, Lock, MessageSquare, Menu, X } from "lucide-react";
+import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog, Activity, Upload, FileText, Lock, MessageSquare, Menu, X, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminTracks from "@/components/admin/AdminTracks";
 import AdminRooms from "@/components/admin/AdminRooms";
@@ -17,11 +17,13 @@ import LiveAnalytics from "@/components/admin/LiveAnalytics";
 import BulkImportExport from "@/components/admin/BulkImportExport";
 import AuditLog from "@/components/admin/AuditLog";
 import FinalizationWorkflow from "@/components/admin/FinalizationWorkflow";
+import TeamCheckIn from "@/components/admin/TeamCheckIn";
 
 const navItems = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "analytics", label: "Analytics", icon: BarChart2 },
   { value: "live", label: "Live", icon: Activity },
+  { value: "checkin", label: "Check-in", icon: CheckCircle },
   { value: "import-export", label: "Import/Export", icon: Upload },
   { value: "audit", label: "Audit", icon: FileText },
   { value: "finalize", label: "Finalize", icon: Lock },
@@ -129,6 +131,7 @@ const Dashboard = () => {
       case 'overview': return <AdminOverview />;
       case 'analytics': return <AdminAnalytics />;
       case 'live': return <LiveAnalytics />;
+      case 'checkin': return <TeamCheckIn />;
       case 'import-export': return <BulkImportExport />;
       case 'audit': return <AuditLog />;
       case 'finalize': return <FinalizationWorkflow />;
