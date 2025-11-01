@@ -37,6 +37,7 @@ interface Team {
   team_number: string;
   members: string[] | null;
   college: string | null;
+  email: string | null;
   total_score: number;
   problem_statement: string | null;
   track_id: string;
@@ -74,6 +75,7 @@ const AdminTeams = () => {
     room_id: "",
     members: "",
     college: "",
+    email: "",
     problem_statement: "",
   });
 
@@ -153,6 +155,7 @@ const AdminTeams = () => {
       room_id: "",
       members: "",
       college: "",
+      email: "",
       problem_statement: "",
     });
   };
@@ -166,6 +169,7 @@ const AdminTeams = () => {
       room_id: team.room_id,
       members: team.members?.join(", ") || "",
       college: team.college || "",
+      email: team.email || "",
       problem_statement: team.problem_statement || "",
     });
     setOpen(true);
@@ -186,6 +190,7 @@ const AdminTeams = () => {
       room_id: formData.room_id,
       members: membersArray,
       college: formData.college || null,
+      email: formData.email || null,
       problem_statement: formData.problem_statement || null,
     };
 
@@ -384,6 +389,19 @@ const AdminTeams = () => {
               </div>
 
               <div className="space-y-2">
+                <Label htmlFor="email">Team Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="e.g., team@example.com"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="problem_statement">Problem Statement</Label>
                 <Textarea
                   id="problem_statement"
@@ -462,6 +480,11 @@ const AdminTeams = () => {
                 {team.college && (
                   <div className="text-xs text-muted-foreground pt-1">
                     {team.college}
+                  </div>
+                )}
+                {team.email && (
+                  <div className="text-xs text-muted-foreground pt-1">
+                    📧 {team.email}
                   </div>
                 )}
               </CardDescription>
