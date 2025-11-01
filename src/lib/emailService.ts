@@ -10,6 +10,81 @@ export interface EmailOptions {
   from?: string;
 }
 
+export interface TeamData {
+  id: string;
+  name: string;
+  team_number: string;
+  email: string | null;
+  college: string | null;
+  members: string[] | null;
+  problem_statement: string | null;
+  total_score: number;
+  checked_in: boolean;
+  checked_in_at: string | null;
+  tracks: { name: string };
+  rooms: { name: string };
+}
+
+/**
+ * Template variables available for email personalization
+ */
+export const TEMPLATE_VARIABLES = {
+  '{team_name}': 'Team name',
+  '{team_number}': 'Team number (e.g., T001)',
+  '{team_email}': 'Team email address',
+  '{college}': 'Team college/institution',
+  '{track_name}': 'Track name',
+  '{room_name}': 'Room name',
+  '{members}': 'Team members (comma-separated)',
+  '{members_count}': 'Number of team members',
+  '{problem_statement}': 'Team problem statement',
+  '{total_score}': 'Current total score',
+  '{checkin_status}': 'Check-in status (Checked In / Not Checked In)',
+  '{checkin_url}': 'Team check-in page URL',
+  '{checkin_qr_url}': 'Full check-in URL for QR code',
+};
+
+/**
+ * Replace template variables in text with actual team data
+ */
+export function replaceTemplateVariables(
+  text: string,
+  teamData: TeamData,
+  baseUrl: string = window.location.origin
+): string {
+  let result = text;
+
+  // Replace each template variable
+  result = result.replace(/{team_name}/g, teamData.name || 'Team');
+  result = result.replace(/{team_number}/g, teamData.team_number || 'N/A');
+  result = result.replace(/{team_email}/g, teamData.email || 'No email provided');
+  result = result.replace(/{college}/g, teamData.college || 'No college specified');
+  result = result.replace(/{track_name}/g, teamData.tracks?.name || 'N/A');
+  result = result.replace(/{room_name}/g, teamData.rooms?.name || 'N/A');
+
+  // Members
+  const membersList = teamData.members?.join(', ') || 'No members listed';
+  result = result.replace(/{members}/g, membersList);
+  result = result.replace(/{members_count}/g, String(teamData.members?.length || 0));
+
+  // Problem statement
+  result = result.replace(/{problem_statement}/g, teamData.problem_statement || 'Not specified');
+
+  // Score
+  result = result.replace(/{total_score}/g, String(teamData.total_score || 0));
+
+  // Check-in status
+  const checkinStatus = teamData.checked_in ? 'Checked In' : 'Not Checked In';
+  result = result.replace(/{checkin_status}/g, checkinStatus);
+
+  // URLs
+  const checkinUrl = `${baseUrl}/team-checkin/${teamData.id}`;
+  result = result.replace(/{checkin_url}/g, checkinUrl);
+  result = result.replace(/{checkin_qr_url}/g, checkinUrl);
+
+  return result;
+}
+
 /**
  * Send an email using Resend API
  */
@@ -69,6 +144,63 @@ export async function sendBulkEmails(
 
   return {
     total: recipients.length,
+    success: successCount,
+    failed: failureCount,
+    results,
+  };
+}
+
+/**
+ * Send personalized bulk emails with template variable replacement
+ */
+export async function sendPersonalizedEmails(
+  teams: TeamData[],
+  subjectTemplate: string,
+  contentTemplate: string,
+  baseUrl: string = window.location.origin
+) {
+  const results = [];
+
+  // Send emails in batches to avoid rate limits
+  const batchSize = 10;
+  for (let i = 0; i < teams.length; i += batchSize) {
+    const batch = teams.slice(i, i + batchSize);
+
+    const batchPromises = batch.map(async (team) => {
+      if (!team.email) {
+        return { success: false, error: 'No email address', teamId: team.id };
+      }
+
+      // Replace template variables in subject
+      const personalizedSubject = replaceTemplateVariables(subjectTemplate, team, baseUrl);
+
+      // Replace template variables in content
+      const personalizedContent = replaceTemplateVariables(contentTemplate, team, baseUrl);
+
+      // Send personalized email
+      const result = await sendEmail({
+        to: [team.email],
+        subject: personalizedSubject,
+        html: personalizedContent,
+      });
+
+      return { ...result, teamId: team.id, teamName: team.name };
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+
+    // Add delay between batches to respect rate limits
+    if (i + batchSize < teams.length) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+  }
+
+  const successCount = results.filter(r => r.success).length;
+  const failureCount = results.filter(r => !r.success).length;
+
+  return {
+    total: teams.length,
     success: successCount,
     failed: failureCount,
     results,

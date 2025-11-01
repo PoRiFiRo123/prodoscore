@@ -8,8 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Send, Eye, Code, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { markdownToHtml, createEmailTemplate } from "@/lib/emailService";
+import { Send, Eye, Code, Loader2, CheckCircle, XCircle, Sparkles } from "lucide-react";
+import { markdownToHtml, createEmailTemplate, TEMPLATE_VARIABLES } from "@/lib/emailService";
 
 interface EmailComposerProps {
   onSend: (subject: string, content: string) => Promise<void>;
@@ -23,6 +23,10 @@ export default function EmailComposer({ onSend, defaultSubject = "", defaultCont
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   const [sending, setSending] = useState(false);
   const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle");
+
+  const insertVariable = (variable: string) => {
+    setContent((prev) => prev + variable);
+  };
 
   const handleSend = async () => {
     if (!subject.trim() || !content.trim()) {
@@ -154,6 +158,44 @@ export default function EmailComposer({ onSend, defaultSubject = "", defaultCont
                   <code className="bg-background px-1 py-0.5 rounded"># Heading</code>
                   <span className="ml-1 text-muted-foreground">→ H1</span>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Template Variables */}
+          <Card className="bg-gradient-to-br from-primary/5 to-accent/5 border-primary/20">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <CardTitle className="text-sm">Dynamic Template Variables</CardTitle>
+              </div>
+              <CardDescription className="text-xs">
+                Click any variable to insert it into your email. Each team will receive a personalized email with their actual data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                {Object.entries(TEMPLATE_VARIABLES).map(([variable, description]) => (
+                  <button
+                    key={variable}
+                    onClick={() => insertVariable(variable)}
+                    className="text-left p-2 rounded-md bg-background hover:bg-accent transition-colors border border-border hover:border-primary/50 group"
+                    type="button"
+                  >
+                    <code className="text-xs font-mono text-primary block mb-1 group-hover:text-primary/80">
+                      {variable}
+                    </code>
+                    <span className="text-xs text-muted-foreground">
+                      {description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <p className="text-xs text-muted-foreground">
+                  <strong>Example:</strong> "Hello {"{team_name}"}, your team number is {"{team_number}"}."
+                  will be personalized for each team.
+                </p>
               </div>
             </CardContent>
           </Card>
