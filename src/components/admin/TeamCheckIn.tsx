@@ -159,111 +159,183 @@ export default function TeamCheckIn() {
 
   const startScanning = async () => {
     setCameraError("");
+    setScanning(true);
 
     try {
-      // Clean up any existing scanner
+      // Clean up any existing scanner instance
       if (html5QrCode) {
         try {
-          await html5QrCode.stop();
+          const state = html5QrCode.getState();
+          if (state === 2) { // Scanner is running
+            await html5QrCode.stop();
+          }
           html5QrCode.clear();
         } catch (e) {
-          console.log("No active scanner to stop");
+          console.log("Scanner cleanup:", e);
         }
       }
 
+      // Create new scanner instance
       const scanner = new Html5Qrcode("qr-reader", {
         verbose: false,
-        formatsToSupport: [0] // QR_CODE
+        formatsToSupport: [0], // QR_CODE only
       });
 
       setHtml5QrCode(scanner);
 
-      // Try to get cameras first
+      // Get available cameras
       const devices = await Html5Qrcode.getCameras();
 
       if (!devices || devices.length === 0) {
-        setCameraError("No cameras found on this device");
-        toast({
-          title: "No Camera Found",
-          description: "Please use manual input or check camera permissions",
-          variant: "destructive",
-        });
-        return;
+        throw new Error("No cameras found. Please check permissions.");
       }
 
-      // Start with back camera if available, otherwise use first camera
-      const cameraId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
+      console.log("Available cameras:", devices.length);
 
+      // Prefer back/environment camera for better QR scanning
+      let selectedCamera = devices[0];
+      for (const device of devices) {
+        if (device.label.toLowerCase().includes('back') || 
+            device.label.toLowerCase().includes('environment')) {
+          selectedCamera = device;
+          break;
+        }
+      }
+
+      console.log("Using camera:", selectedCamera.label);
+
+      // Start scanning with optimized settings
       await scanner.start(
-        cameraId,
+        selectedCamera.id,
         {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
+          fps: 10, // Scan 10 times per second
+          qrbox: { width: 300, height: 300 }, // Larger scan box
           aspectRatio: 1.0,
         },
-        (decodedText) => {
-          console.log("QR Code scanned:", decodedText);
-          handleCheckIn(decodedText);
+        async (decodedText) => {
+          console.log("✅ QR Code detected:", decodedText);
+          
+          // Temporarily pause scanning to prevent multiple scans
+          try {
+            await scanner.pause(true);
+          } catch (e) {
+            console.log("Pause error:", e);
+          }
+
+          // Process the check-in
+          await handleCheckIn(decodedText);
+          
+          // Resume scanning after a delay
+          setTimeout(async () => {
+            try {
+              if (scanner.getState() === 3) { // Paused state
+                scanner.resume();
+              }
+            } catch (e) {
+              console.log("Resume error:", e);
+            }
+          }, 2000);
         },
         (errorMessage) => {
-          // Ignore scan failures (too noisy in console)
+          // Silently ignore scanning errors (they're too frequent)
         }
       );
 
-      setScanning(true);
       toast({
-        title: "Scanner Started",
-        description: "Point camera at team QR code",
+        title: "✅ Scanner Ready",
+        description: "Point camera at team QR code to check in",
       });
+
     } catch (err: any) {
-      console.error("Error starting scanner:", err);
-      setCameraError(err.message || "Failed to start camera");
+      console.error("❌ Scanner error:", err);
+      setScanning(false);
+      
+      const errorMsg = err.message || "Failed to start camera";
+      setCameraError(errorMsg);
+      
       toast({
-        title: "Camera Error",
-        description: "Could not access camera. Try manual input or check permissions.",
+        title: "Camera Access Failed",
+        description: "Please allow camera permissions or use manual input below.",
         variant: "destructive",
       });
     }
   };
 
   const stopScanning = async () => {
-    if (html5QrCode && scanning) {
+    console.log("🛑 Stopping scanner...");
+    
+    if (html5QrCode) {
       try {
-        await html5QrCode.stop();
+        const state = html5QrCode.getState();
+        if (state === 2 || state === 3) { // Running or Paused
+          await html5QrCode.stop();
+        }
         html5QrCode.clear();
       } catch (err) {
         console.error("Error stopping scanner:", err);
       }
     }
+    
     setScanning(false);
     setHtml5QrCode(null);
+    setCameraError("");
+    
+    toast({
+      title: "Scanner Stopped",
+      description: "Camera has been released",
+    });
   };
 
   const handleCheckIn = async (qrToken: string) => {
+    console.log("🔄 Processing check-in for token:", qrToken);
+    
     if (!userId) {
       toast({
-        title: "Error",
-        description: "User not authenticated",
+        title: "❌ Authentication Error",
+        description: "You must be logged in to check in teams",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      const trimmedToken = qrToken.trim();
+      
+      // Validate token format (should be a UUID)
+      if (!trimmedToken || trimmedToken.length < 10) {
+        toast({
+          title: "❌ Invalid QR Code",
+          description: "The scanned code is not valid",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.rpc("check_in_team", {
-        _qr_token: qrToken.trim(),
+        _qr_token: trimmedToken,
         _admin_id: userId,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("RPC error:", error);
+        throw error;
+      }
 
       const result = data[0];
 
       if (result.success) {
+        // Play success sound or vibration if available
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+        
         toast({
           title: "✅ Check-in Successful!",
           description: `${result.team_name} has been checked in`,
+          duration: 3000,
         });
+        
+        // Refresh team list
         fetchTeams();
 
         // Clear manual input if it was used
@@ -272,17 +344,19 @@ export default function TeamCheckIn() {
         }
       } else {
         toast({
-          title: "Check-in Failed",
-          description: result.message,
+          title: "⚠️ Check-in Failed",
+          description: result.message || "Team could not be checked in",
           variant: "destructive",
+          duration: 4000,
         });
       }
     } catch (err: any) {
-      console.error("Check-in error:", err);
+      console.error("❌ Check-in error:", err);
       toast({
         title: "Error",
-        description: err.message || "Failed to check in team",
+        description: err.message || "Failed to check in team. Please try again.",
         variant: "destructive",
+        duration: 4000,
       });
     }
   };
@@ -429,28 +503,66 @@ export default function TeamCheckIn() {
             </TabsList>
 
             <TabsContent value="camera" className="space-y-4">
+              {!scanning && !cameraError && (
+                <div className="text-center py-8 space-y-4">
+                  <div className="mx-auto w-24 h-24 bg-muted rounded-full flex items-center justify-center">
+                    <Camera className="h-12 w-12 text-muted-foreground" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">Ready to Scan</h3>
+                    <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                      Click the button below to activate your camera and scan team QR codes for instant check-in
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div
                 id="qr-reader"
-                className={`${scanning ? "border-2 border-primary rounded-lg overflow-hidden" : "hidden"}`}
-                style={{ width: "100%", maxWidth: "500px", margin: "0 auto" }}
+                className={`${scanning ? "border-4 border-primary rounded-lg overflow-hidden shadow-lg" : "hidden"}`}
+                style={{ width: "100%", maxWidth: "600px", margin: "0 auto" }}
               />
 
+              {scanning && (
+                <div className="bg-primary/10 border border-primary rounded-lg p-4 text-center">
+                  <p className="text-sm font-medium">
+                    📷 Scanner Active - Point camera at QR code
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Position the QR code within the highlighted box
+                  </p>
+                </div>
+              )}
+
               {cameraError && (
-                <div className="bg-destructive/10 border border-destructive text-destructive rounded-lg p-4 text-sm">
-                  <strong>Camera Error:</strong> {cameraError}
-                  <br />
-                  <span className="text-xs">Try using manual input instead or check browser permissions.</span>
+                <div className="bg-destructive/10 border border-destructive text-destructive rounded-lg p-4 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <XCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-semibold">Camera Access Failed</p>
+                      <p className="text-sm mt-1">{cameraError}</p>
+                    </div>
+                  </div>
+                  <div className="text-sm space-y-1 mt-3 pt-3 border-t border-destructive/20">
+                    <p className="font-medium">Troubleshooting:</p>
+                    <ul className="list-disc list-inside space-y-1 text-xs">
+                      <li>Allow camera permissions in your browser settings</li>
+                      <li>Make sure no other app is using the camera</li>
+                      <li>Try refreshing the page</li>
+                      <li>Use the Manual Input tab below as an alternative</li>
+                    </ul>
+                  </div>
                 </div>
               )}
 
               <div className="flex gap-2 justify-center">
                 {!scanning ? (
-                  <Button onClick={startScanning} size="lg">
+                  <Button onClick={startScanning} size="lg" className="min-w-[200px]">
                     <Camera className="h-5 w-5 mr-2" />
                     Start Camera Scanner
                   </Button>
                 ) : (
-                  <Button onClick={stopScanning} variant="destructive" size="lg">
+                  <Button onClick={stopScanning} variant="destructive" size="lg" className="min-w-[200px]">
                     <CameraOff className="h-5 w-5 mr-2" />
                     Stop Scanner
                   </Button>
