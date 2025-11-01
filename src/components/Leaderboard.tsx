@@ -127,7 +127,7 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
 
       // Sort by total_score (which is now average score)
       teamsWithAverageScores.sort((a, b) => b.total_score - a.total_score);
-      setTeams(teamsWithAverageScores);
+      setTeams(teamsWithAverageScores as unknown as Team[]);
     }
   };
 

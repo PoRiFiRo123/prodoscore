@@ -11,7 +11,7 @@ export interface Snippet {
   updated_at: string | null;
 }
 
-export const useSnippets = (trackId: string | null) => {
+export const useSnippets = (trackId: string | null = null) => {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();

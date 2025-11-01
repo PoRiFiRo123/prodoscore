@@ -87,7 +87,7 @@ const AdminJudges = () => {
           })
         );
 
-        setJudges(judgesWithRooms);
+        setJudges(judgesWithRooms as unknown as Judge[]);
       }
     } catch (error: any) {
       console.error("Error fetching judges:", error);
@@ -113,7 +113,7 @@ const AdminJudges = () => {
         variant: "destructive",
       });
     } else {
-      setRooms(data || []);
+      setRooms((data as unknown as Room[]) || []);
     }
   };
 
