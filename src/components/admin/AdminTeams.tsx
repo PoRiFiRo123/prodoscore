@@ -27,7 +27,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Users as UsersIcon, Edit } from "lucide-react";
+import { Plus, Trash2, Users as UsersIcon, Edit, CheckCircle, XCircle, QrCode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/auditLog";
 
@@ -41,6 +41,8 @@ interface Team {
   problem_statement: string | null;
   track_id: string;
   room_id: string;
+  checked_in: boolean;
+  checked_in_at: string | null;
   tracks: { name: string };
   rooms: { name: string };
 }
@@ -445,6 +447,17 @@ const AdminTeams = () => {
                 <div className="flex gap-2 flex-wrap">
                   <Badge variant="outline">{team.tracks.name}</Badge>
                   <Badge variant="secondary">{team.rooms.name}</Badge>
+                  {team.checked_in ? (
+                    <Badge className="bg-green-500">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Checked In
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-muted-foreground">
+                      <XCircle className="h-3 w-3 mr-1" />
+                      Not Checked In
+                    </Badge>
+                  )}
                 </div>
                 {team.college && (
                   <div className="text-xs text-muted-foreground pt-1">
@@ -466,8 +479,18 @@ const AdminTeams = () => {
                 <UsersIcon className="h-4 w-4" />
                 <span>{team.members?.length || 0} members</span>
               </div>
-              <div className="mt-2 text-lg font-semibold">
-                Score: {Number(team.total_score).toFixed(1)}
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-lg font-semibold">
+                  Score: {Number(team.total_score).toFixed(1)}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`/team-checkin/${team.id}`, '_blank')}
+                >
+                  <QrCode className="h-4 w-4 mr-1" />
+                  QR Code
+                </Button>
               </div>
             </CardContent>
           </Card>
