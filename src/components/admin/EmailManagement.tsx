@@ -21,9 +21,11 @@ import {
 import EmailComposer from "./EmailComposer";
 import {
   sendBulkEmails,
+  sendPersonalizedEmails,
   markdownToHtml,
   createEmailTemplate,
   createCheckinEmailTemplate,
+  type TeamData,
 } from "@/lib/emailService";
 
 interface Team {
@@ -31,6 +33,12 @@ interface Team {
   name: string;
   team_number: string;
   email: string | null;
+  college: string | null;
+  members: string[] | null;
+  problem_statement: string | null;
+  total_score: number;
+  checked_in: boolean;
+  checked_in_at: string | null;
   tracks: { name: string };
   rooms: { name: string };
 }
@@ -49,7 +57,7 @@ export default function EmailManagement() {
   const fetchTeams = async () => {
     const { data, error } = await supabase
       .from("teams")
-      .select("id, name, team_number, email, tracks(name), rooms(name)")
+      .select("*, tracks(name), rooms(name)")
       .order("team_number");
 
     if (error) {
@@ -106,14 +114,22 @@ export default function EmailManagement() {
     setSending(true);
 
     try {
-      const recipients = teams
-        .filter(t => selectedTeams.has(t.id) && t.email)
-        .map(t => t.email!);
+      // Get full team objects for template variable replacement
+      const selectedTeamsList = teams.filter(
+        t => selectedTeams.has(t.id) && t.email
+      ) as TeamData[];
 
+      // Convert markdown to HTML and wrap in template
       const htmlContent = markdownToHtml(content);
-      const fullHtml = createEmailTemplate(htmlContent, subject);
+      const contentTemplate = createEmailTemplate(htmlContent);
 
-      const result = await sendBulkEmails(recipients, subject, fullHtml);
+      // Send personalized emails with template variable replacement
+      const result = await sendPersonalizedEmails(
+        selectedTeamsList,
+        subject,
+        contentTemplate,
+        window.location.origin
+      );
 
       toast({
         title: "Email Sent",
