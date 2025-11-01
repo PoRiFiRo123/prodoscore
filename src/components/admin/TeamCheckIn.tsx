@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,10 +18,12 @@ import {
   Filter,
   Search,
   Download,
-  Printer,
+  Keyboard,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Team {
   id: string;
@@ -47,9 +49,10 @@ export default function TeamCheckIn() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [selectedTeamQR, setSelectedTeamQR] = useState<Team | null>(null);
-
-  const scannerRef = useRef<Html5Qrcode | null>(null);
-  const readerRef = useRef<HTMLDivElement>(null);
+  const [manualQRCode, setManualQRCode] = useState("");
+  const [html5QrCode, setHtml5QrCode] = useState<Html5Qrcode | null>(null);
+  const [cameraError, setCameraError] = useState<string>("");
+  const [scanMode, setScanMode] = useState<"camera" | "manual">("camera");
 
   useEffect(() => {
     fetchUserAndTeams();
@@ -73,7 +76,7 @@ export default function TeamCheckIn() {
       .subscribe();
 
     return () => {
-      stopScanning();
+      cleanupScanner();
       supabase.removeChannel(channel);
     };
   }, []);
@@ -81,6 +84,17 @@ export default function TeamCheckIn() {
   useEffect(() => {
     applyFilters();
   }, [teams, selectedTrack, selectedRoom, filterStatus, searchQuery]);
+
+  const cleanupScanner = async () => {
+    if (html5QrCode && scanning) {
+      try {
+        await html5QrCode.stop();
+        html5QrCode.clear();
+      } catch (err) {
+        console.error("Error cleaning up scanner:", err);
+      }
+    }
+  };
 
   const fetchUserAndTeams = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -144,20 +158,56 @@ export default function TeamCheckIn() {
   };
 
   const startScanning = async () => {
-    if (!readerRef.current) return;
+    setCameraError("");
 
     try {
-      const html5QrCode = new Html5Qrcode("qr-reader");
-      scannerRef.current = html5QrCode;
+      // Clean up any existing scanner
+      if (html5QrCode) {
+        try {
+          await html5QrCode.stop();
+          html5QrCode.clear();
+        } catch (e) {
+          console.log("No active scanner to stop");
+        }
+      }
 
-      await html5QrCode.start(
-        { facingMode: "environment" },
+      const scanner = new Html5Qrcode("qr-reader", {
+        verbose: false,
+        formatsToSupport: [0] // QR_CODE
+      });
+
+      setHtml5QrCode(scanner);
+
+      // Try to get cameras first
+      const devices = await Html5Qrcode.getCameras();
+
+      if (!devices || devices.length === 0) {
+        setCameraError("No cameras found on this device");
+        toast({
+          title: "No Camera Found",
+          description: "Please use manual input or check camera permissions",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Start with back camera if available, otherwise use first camera
+      const cameraId = devices.length > 1 ? devices[devices.length - 1].id : devices[0].id;
+
+      await scanner.start(
+        cameraId,
         {
           fps: 10,
           qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
         },
-        onScanSuccess,
-        onScanFailure
+        (decodedText) => {
+          console.log("QR Code scanned:", decodedText);
+          handleCheckIn(decodedText);
+        },
+        (errorMessage) => {
+          // Ignore scan failures (too noisy in console)
+        }
       );
 
       setScanning(true);
@@ -165,36 +215,28 @@ export default function TeamCheckIn() {
         title: "Scanner Started",
         description: "Point camera at team QR code",
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error starting scanner:", err);
+      setCameraError(err.message || "Failed to start camera");
       toast({
-        title: "Scanner Error",
-        description: "Could not access camera",
+        title: "Camera Error",
+        description: "Could not access camera. Try manual input or check permissions.",
         variant: "destructive",
       });
     }
   };
 
   const stopScanning = async () => {
-    if (scannerRef.current) {
+    if (html5QrCode && scanning) {
       try {
-        await scannerRef.current.stop();
-        scannerRef.current.clear();
-        scannerRef.current = null;
+        await html5QrCode.stop();
+        html5QrCode.clear();
       } catch (err) {
         console.error("Error stopping scanner:", err);
       }
     }
     setScanning(false);
-  };
-
-  const onScanSuccess = async (decodedText: string) => {
-    console.log("QR Code detected:", decodedText);
-    await handleCheckIn(decodedText);
-  };
-
-  const onScanFailure = (error: any) => {
-    // Ignore scan failures (too noisy)
+    setHtml5QrCode(null);
   };
 
   const handleCheckIn = async (qrToken: string) => {
@@ -209,7 +251,7 @@ export default function TeamCheckIn() {
 
     try {
       const { data, error } = await supabase.rpc("check_in_team", {
-        _qr_token: qrToken,
+        _qr_token: qrToken.trim(),
         _admin_id: userId,
       });
 
@@ -219,10 +261,15 @@ export default function TeamCheckIn() {
 
       if (result.success) {
         toast({
-          title: "Check-in Successful!",
+          title: "✅ Check-in Successful!",
           description: `${result.team_name} has been checked in`,
         });
         fetchTeams();
+
+        // Clear manual input if it was used
+        if (scanMode === "manual") {
+          setManualQRCode("");
+        }
       } else {
         toast({
           title: "Check-in Failed",
@@ -238,6 +285,18 @@ export default function TeamCheckIn() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleManualCheckIn = () => {
+    if (!manualQRCode.trim()) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter a QR code",
+        variant: "destructive",
+      });
+      return;
+    }
+    handleCheckIn(manualQRCode);
   };
 
   const handleManualToggle = async (teamId: string, currentStatus: boolean) => {
@@ -277,11 +336,11 @@ export default function TeamCheckIn() {
       ...filteredTeams.map((team) =>
         [
           team.team_number,
-          team.name,
-          team.tracks.name,
-          team.rooms.name,
+          `"${team.name}"`,
+          `"${team.tracks.name}"`,
+          `"${team.rooms.name}"`,
           team.checked_in ? "Yes" : "No",
-          team.checked_in_at ? new Date(team.checked_in_at).toLocaleString() : "N/A",
+          team.checked_in_at ? `"${new Date(team.checked_in_at).toLocaleString()}"` : "N/A",
         ].join(",")
       ),
     ].join("\n");
@@ -342,35 +401,89 @@ export default function TeamCheckIn() {
         </Card>
       </div>
 
-      {/* QR Scanner Card */}
+      {/* Scanner Card with Tabs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <QrCode className="h-5 w-5" />
-            QR Code Scanner
+            Check-in Scanner
           </CardTitle>
-          <CardDescription>Use your camera to scan team QR codes</CardDescription>
+          <CardDescription>Use camera to scan QR codes or enter manually</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div
-            id="qr-reader"
-            ref={readerRef}
-            className={`${scanning ? "border-2 border-primary rounded-lg overflow-hidden" : "hidden"}`}
-            style={{ width: "100%", maxWidth: "500px", margin: "0 auto" }}
-          />
-          <div className="flex gap-2 justify-center">
-            {!scanning ? (
-              <Button onClick={startScanning} size="lg">
-                <Camera className="h-5 w-5 mr-2" />
-                Start Scanner
-              </Button>
-            ) : (
-              <Button onClick={stopScanning} variant="destructive" size="lg">
-                <CameraOff className="h-5 w-5 mr-2" />
-                Stop Scanner
-              </Button>
-            )}
-          </div>
+          <Tabs value={scanMode} onValueChange={(v) => {
+            setScanMode(v as "camera" | "manual");
+            if (v === "manual" && scanning) {
+              stopScanning();
+            }
+          }}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="camera">
+                <Camera className="h-4 w-4 mr-2" />
+                Camera Scanner
+              </TabsTrigger>
+              <TabsTrigger value="manual">
+                <Keyboard className="h-4 w-4 mr-2" />
+                Manual Input
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="camera" className="space-y-4">
+              <div
+                id="qr-reader"
+                className={`${scanning ? "border-2 border-primary rounded-lg overflow-hidden" : "hidden"}`}
+                style={{ width: "100%", maxWidth: "500px", margin: "0 auto" }}
+              />
+
+              {cameraError && (
+                <div className="bg-destructive/10 border border-destructive text-destructive rounded-lg p-4 text-sm">
+                  <strong>Camera Error:</strong> {cameraError}
+                  <br />
+                  <span className="text-xs">Try using manual input instead or check browser permissions.</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-center">
+                {!scanning ? (
+                  <Button onClick={startScanning} size="lg">
+                    <Camera className="h-5 w-5 mr-2" />
+                    Start Camera Scanner
+                  </Button>
+                ) : (
+                  <Button onClick={stopScanning} variant="destructive" size="lg">
+                    <CameraOff className="h-5 w-5 mr-2" />
+                    Stop Scanner
+                  </Button>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="manual" className="space-y-4">
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="manual-qr">QR Code / Team Token</Label>
+                  <Input
+                    id="manual-qr"
+                    placeholder="Paste or type the QR code here..."
+                    value={manualQRCode}
+                    onChange={(e) => setManualQRCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleManualCheckIn();
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter the team's QR token and press Enter or click Check In
+                  </p>
+                </div>
+                <Button onClick={handleManualCheckIn} className="w-full" size="lg">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  Check In Team
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -529,24 +642,44 @@ export default function TeamCheckIn() {
                     includeMargin={true}
                   />
                 </div>
-                <p className="text-sm text-muted-foreground mt-4 text-center">
-                  Share link: {window.location.origin}/team-checkin/{selectedTeamQR.id}
-                </p>
-                <Button
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `${window.location.origin}/team-checkin/${selectedTeamQR.id}`
-                    );
-                    toast({
-                      title: "Link Copied",
-                      description: "Check-in link copied to clipboard",
-                    });
-                  }}
-                  variant="outline"
-                  className="mt-2"
-                >
-                  Copy Link
-                </Button>
+                <div className="mt-4 w-full space-y-2">
+                  <p className="text-sm text-muted-foreground text-center">
+                    Team Token: <code className="bg-muted px-2 py-1 rounded">{selectedTeamQR.qr_token}</code>
+                  </p>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Share link: {window.location.origin}/team-checkin/{selectedTeamQR.id}
+                  </p>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedTeamQR.qr_token);
+                      toast({
+                        title: "Token Copied",
+                        description: "Team token copied to clipboard",
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Copy Token
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        `${window.location.origin}/team-checkin/${selectedTeamQR.id}`
+                      );
+                      toast({
+                        title: "Link Copied",
+                        description: "Check-in link copied to clipboard",
+                      });
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Copy Link
+                  </Button>
+                </div>
               </>
             )}
           </div>
