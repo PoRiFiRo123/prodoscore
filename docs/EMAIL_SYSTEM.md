@@ -11,6 +11,13 @@ The Prodathon Judging System includes a comprehensive email management system th
 - **Visual Preview**: See exactly how your email will look before sending
 - **HTML Email Templates**: Professional, responsive email templates
 - **Bulk Sending**: Send to multiple teams at once
+- **Dynamic Template Variables**: Personalize emails with team-specific data
+
+### ✅ Dynamic Template Variables
+- Use placeholders like `{team_name}` that automatically get replaced with actual team data
+- 13 available variables including team name, number, score, check-in status, and more
+- Click-to-insert UI for easy variable insertion
+- Each team receives a personalized email with their own data
 
 ### ✅ Automated Check-in Links
 - Send check-in page links to all teams
@@ -34,24 +41,42 @@ The Prodathon Judging System includes a comprehensive email management system th
 4. Create a new API key
 5. Copy your API key (starts with `re_`)
 
-### 2. Configure Environment Variables
+### 2. Deploy the Email Edge Function
 
-1. Copy `.env.example` to `.env`:
+The email system uses a Supabase Edge Function to send emails server-side, which is more secure and avoids CORS issues.
+
+1. Install Supabase CLI if you haven't already:
    ```bash
-   cp .env.example .env
+   npm install -g supabase
    ```
 
-2. Add your Resend API key to `.env`:
-   ```env
-   VITE_RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+2. Link your Supabase project:
+   ```bash
+   supabase link --project-ref your-project-ref
    ```
 
-3. (Optional) Configure custom sender:
-   ```env
-   VITE_EMAIL_FROM=Your Event Name <noreply@yourdomain.com>
+3. Set the Resend API key as a secret:
+   ```bash
+   supabase secrets set RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    ```
 
-### 3. Verify Domain (Production)
+4. Deploy the edge function:
+   ```bash
+   supabase functions deploy send-email
+   ```
+
+### 3. (Optional) Configure Custom Sender Email
+
+By default, emails are sent from `Prodathon <onboarding@resend.dev>`. To use your own domain:
+
+1. Verify your domain in Resend
+2. Update the `from` field in `supabase/functions/send-email/index.ts` (line 48)
+3. Redeploy the function:
+   ```bash
+   supabase functions deploy send-email
+   ```
+
+### 4. Verify Domain (Production)
 
 For production use, you need to verify your domain with Resend:
 
@@ -86,9 +111,69 @@ For production use, you need to verify your domain with Resend:
 1. Go to "Compose Custom Email" tab
 2. Enter subject line
 3. Write your email content using Markdown
-4. Switch to "Preview" tab to see the rendered email
-5. Go to "Manage Recipients" and select teams
-6. Click "Send Email"
+4. Use template variables to personalize content (see below)
+5. Switch to "Preview" tab to see the rendered email
+6. Go to "Manage Recipients" and select teams
+7. Click "Send Email"
+
+### Using Template Variables
+
+Template variables allow you to send personalized emails to each team. When you send the email, placeholders are automatically replaced with actual team data.
+
+**Available Variables:**
+
+- `{team_name}` - Team name
+- `{team_number}` - Team number (e.g., T001)
+- `{team_email}` - Team email address
+- `{college}` - Team college/institution
+- `{track_name}` - Track name
+- `{room_name}` - Room name
+- `{members}` - Team members (comma-separated)
+- `{members_count}` - Number of team members
+- `{problem_statement}` - Team problem statement
+- `{total_score}` - Current total score
+- `{checkin_status}` - Check-in status (Checked In / Not Checked In)
+- `{checkin_url}` - Team check-in page URL
+- `{checkin_qr_url}` - Full check-in URL for QR code
+
+**Example Email:**
+
+```markdown
+Hello {team_name},
+
+Your team number is **{team_number}** and you're competing in the **{track_name}** track.
+
+You'll be presenting in **{room_name}**.
+
+Your current score: **{total_score}** points
+Check-in status: {checkin_status}
+
+Visit your team page: {checkin_url}
+
+Good luck!
+```
+
+**What Team Alpha Receives:**
+```
+Hello Team Alpha,
+
+Your team number is T001 and you're competing in the AI/ML track.
+
+You'll be presenting in Room 101.
+
+Your current score: 85 points
+Check-in status: Checked In
+
+Visit your team page: https://yoursite.com/team-checkin/abc123
+
+Good luck!
+```
+
+**Tips:**
+- Click any variable in the "Dynamic Template Variables" section to insert it
+- Variables work in both subject and content
+- Each team receives a unique, personalized email
+- Preview shows the template, not the personalized version
 
 ### Markdown Syntax Guide
 

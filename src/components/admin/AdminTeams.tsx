@@ -461,7 +461,7 @@ const AdminTeams = () => {
                     </Button>
                 </div>
               </CardTitle>
-              <CardDescription className="space-y-2">
+              <div className="space-y-2 mt-2">
                 <div className="flex gap-2 flex-wrap">
                   <Badge variant="outline">{team.tracks.name}</Badge>
                   <Badge variant="secondary">{team.rooms.name}</Badge>
@@ -487,7 +487,7 @@ const AdminTeams = () => {
                     📧 {team.email}
                   </div>
                 )}
-              </CardDescription>
+              </div>
             </CardHeader>
             <CardContent className="flex-grow">
               {team.problem_statement && (
