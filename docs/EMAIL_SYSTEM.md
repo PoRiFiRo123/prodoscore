@@ -67,46 +67,50 @@ The email system uses a Supabase Edge Function to send emails server-side, which
 
 ### 3. Configure Sender Email
 
-**IMPORTANT**: Resend has restrictions on who you can send emails to depending on your sender address.
+**🚨 CRITICAL LIMITATION**: Resend does NOT allow Gmail, Yahoo, Outlook, or other public email providers as sender addresses!
 
-**Quick Setup (For Testing):**
+**Testing Setup (Limited Functionality):**
 
-By default, the function uses `studentclubs.bnmit@gmail.com` as the sender. This works immediately:
+By default, the edge function uses `onboarding@resend.dev` (Resend's test domain):
 
 ```bash
-# No additional configuration needed - it's already set as default
+# No configuration needed - works out of the box
 supabase functions deploy send-email
 ```
 
-**Production Setup (Recommended):**
+⚠️ **LIMITATION**: With test domain, you can ONLY send emails to your verified email (`studentclubs.bnmit@gmail.com`). You cannot send to team members.
 
-To send emails from your own domain:
+**Production Setup (REQUIRED for team emails):**
 
-1. **Verify your domain in Resend:**
+To send emails to actual team members, you MUST verify your own domain:
+
+1. **Get a domain** (if you don't have one):
+   - Purchase from Namecheap, GoDaddy, etc. (~$10/year), or
+   - Use a free subdomain service
+
+2. **Verify your domain in Resend:**
    - Go to [Resend Dashboard → Domains](https://resend.com/domains)
-   - Add your domain
-   - Add the provided DNS records to your domain
-   - Wait for verification (usually a few minutes)
+   - Click "Add Domain"
+   - Enter your domain (e.g., `prodathon.com`)
+   - Add the DNS records provided by Resend to your domain provider
+   - Wait 5-15 minutes for verification
 
-2. **Set the FROM_EMAIL secret:**
+3. **Configure sender email:**
    ```bash
    supabase secrets set FROM_EMAIL="Prodathon <noreply@yourdomain.com>"
-   ```
-
-3. **Redeploy the function:**
-   ```bash
    supabase functions deploy send-email
    ```
 
-**Resend Email Restrictions:**
+**Email Sending Rules:**
 
-| Sender Address | Can Send To | Limitations |
-|----------------|-------------|-------------|
-| `onboarding@resend.dev` | Only your verified email | Testing only |
-| Your verified email | Anyone | Free tier: 100/day, 3000/month |
-| Your verified domain | Anyone | Free tier: 100/day, 3000/month |
+| Sender Address | Recipients Allowed | Status |
+|----------------|-------------------|--------|
+| `onboarding@resend.dev` | Only your verified email | ⚠️ Testing only |
+| `name@yourdomain.com` | Anyone | ✅ Production ready |
+| ❌ `name@gmail.com` | None | 🚫 Not allowed by Resend |
+| ❌ `name@yahoo.com` | None | 🚫 Not allowed by Resend |
 
-**Note**: The default configuration uses your verified email as sender, which allows sending to any team.
+**Free Tier Limits**: 100 emails/day, 3,000 emails/month
 
 ## Usage Guide
 
