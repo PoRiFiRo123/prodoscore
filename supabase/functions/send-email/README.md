@@ -4,19 +4,24 @@ This Supabase Edge Function handles email sending via the Resend API server-side
 
 ## Setup
 
-### 1. Set the Resend API Key as a Secret
+### 1. Set Required Secrets
 
-You need to add your Resend API key as a secret in your Supabase project:
+You need to add secrets to your Supabase project:
 
 ```bash
-# Using Supabase CLI
+# Required: Your Resend API key
 supabase secrets set RESEND_API_KEY=re_your_actual_api_key_here
+
+# Optional: Custom sender email (defaults to studentclubs.bnmit@gmail.com)
+supabase secrets set FROM_EMAIL="Your Name <yourname@yourdomain.com>"
 ```
 
 Or through the Supabase Dashboard:
 1. Go to your project settings
 2. Navigate to Edge Functions → Environment Variables
-3. Add a new secret: `RESEND_API_KEY` with your Resend API key
+3. Add secrets:
+   - `RESEND_API_KEY` - Your Resend API key
+   - `FROM_EMAIL` - (Optional) Your verified sender email
 
 ### 2. Deploy the Function
 
@@ -28,14 +33,37 @@ supabase functions deploy
 supabase functions deploy send-email
 ```
 
-### 3. Configure Email From Address
+### 3. Configure Sender Email
 
-By default, the function uses `Prodathon <onboarding@resend.dev>` as the sender.
+**IMPORTANT**: Resend's free tier has restrictions on sender addresses.
 
-To customize this:
-1. Verify your domain in Resend
-2. Update the `from` field in `index.ts` (line 48)
-3. Redeploy the function
+**Default Behavior:**
+- The function uses `studentclubs.bnmit@gmail.com` as the sender by default
+- This works if you're sending to teams, but ideally should be your verified email
+
+**To Use a Custom Sender:**
+
+Option A - Quick Setup (Using your verified email):
+```bash
+supabase secrets set FROM_EMAIL="studentclubs.bnmit@gmail.com"
+supabase functions deploy send-email
+```
+
+Option B - Production Setup (Using your own domain):
+1. Verify your domain in Resend (https://resend.com/domains)
+2. Set the FROM_EMAIL secret:
+   ```bash
+   supabase secrets set FROM_EMAIL="Prodathon <noreply@yourdomain.com>"
+   ```
+3. Redeploy the function:
+   ```bash
+   supabase functions deploy send-email
+   ```
+
+**Resend Restrictions:**
+- With `onboarding@resend.dev`: Can only send to your own verified email
+- With verified domain: Can send to anyone
+- Free tier: 100 emails/day, 3,000 emails/month
 
 ## Usage
 
