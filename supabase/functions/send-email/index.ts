@@ -25,6 +25,10 @@ serve(async (req) => {
       throw new Error("RESEND_API_KEY environment variable is not set");
     }
 
+    // Get sender email (defaults to Resend's test domain)
+    // IMPORTANT: For production, set FROM_EMAIL to your verified email/domain
+    const fromEmail = Deno.env.get("FROM_EMAIL") || "studentclubs.bnmit@gmail.com";
+
     // Parse request body
     const { to, subject, html }: EmailPayload = await req.json();
 
@@ -50,7 +54,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Prodathon <onboarding@resend.dev>", // You can configure this
+        from: fromEmail,
         to,
         subject,
         html,

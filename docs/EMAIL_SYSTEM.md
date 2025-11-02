@@ -65,27 +65,48 @@ The email system uses a Supabase Edge Function to send emails server-side, which
    supabase functions deploy send-email
    ```
 
-### 3. (Optional) Configure Custom Sender Email
+### 3. Configure Sender Email
 
-By default, emails are sent from `Prodathon <onboarding@resend.dev>`. To use your own domain:
+**IMPORTANT**: Resend has restrictions on who you can send emails to depending on your sender address.
 
-1. Verify your domain in Resend
-2. Update the `from` field in `supabase/functions/send-email/index.ts` (line 48)
-3. Redeploy the function:
+**Quick Setup (For Testing):**
+
+By default, the function uses `studentclubs.bnmit@gmail.com` as the sender. This works immediately:
+
+```bash
+# No additional configuration needed - it's already set as default
+supabase functions deploy send-email
+```
+
+**Production Setup (Recommended):**
+
+To send emails from your own domain:
+
+1. **Verify your domain in Resend:**
+   - Go to [Resend Dashboard → Domains](https://resend.com/domains)
+   - Add your domain
+   - Add the provided DNS records to your domain
+   - Wait for verification (usually a few minutes)
+
+2. **Set the FROM_EMAIL secret:**
+   ```bash
+   supabase secrets set FROM_EMAIL="Prodathon <noreply@yourdomain.com>"
+   ```
+
+3. **Redeploy the function:**
    ```bash
    supabase functions deploy send-email
    ```
 
-### 4. Verify Domain (Production)
+**Resend Email Restrictions:**
 
-For production use, you need to verify your domain with Resend:
+| Sender Address | Can Send To | Limitations |
+|----------------|-------------|-------------|
+| `onboarding@resend.dev` | Only your verified email | Testing only |
+| Your verified email | Anyone | Free tier: 100/day, 3000/month |
+| Your verified domain | Anyone | Free tier: 100/day, 3000/month |
 
-1. Go to Resend Dashboard → Domains
-2. Add your domain
-3. Add the provided DNS records to your domain
-4. Wait for verification (usually a few minutes)
-
-**Note**: For development/testing, you can use Resend's test domain without verification.
+**Note**: The default configuration uses your verified email as sender, which allows sending to any team.
 
 ## Usage Guide
 
