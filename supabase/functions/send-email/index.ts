@@ -26,8 +26,11 @@ serve(async (req) => {
     }
 
     // Get sender email (defaults to Resend's test domain)
-    // IMPORTANT: For production, set FROM_EMAIL to your verified email/domain
-    const fromEmail = Deno.env.get("FROM_EMAIL") || "studentclubs.bnmit@gmail.com";
+    // IMPORTANT: You CANNOT use Gmail/Yahoo/Outlook as sender
+    // Options:
+    //   1. Use 'onboarding@resend.dev' (test domain - can only send to your verified email)
+    //   2. Verify your own domain at resend.com/domains, then use 'name@yourdomain.com'
+    const fromEmail = Deno.env.get("FROM_EMAIL") || "Prodathon <onboarding@resend.dev>";
 
     // Parse request body
     const { to, subject, html }: EmailPayload = await req.json();

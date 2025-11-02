@@ -35,35 +35,44 @@ supabase functions deploy send-email
 
 ### 3. Configure Sender Email
 
-**IMPORTANT**: Resend's free tier has restrictions on sender addresses.
+**CRITICAL**: Resend does NOT allow using Gmail, Yahoo, Outlook, or other public email providers as the sender address!
 
-**Default Behavior:**
-- The function uses `studentclubs.bnmit@gmail.com` as the sender by default
-- This works if you're sending to teams, but ideally should be your verified email
+**Default Behavior (Testing Only):**
+- The function uses `onboarding@resend.dev` (Resend's test domain)
+- ⚠️ **LIMITATION**: Can ONLY send to your verified email (`studentclubs.bnmit@gmail.com`)
+- This is for testing the email system only
 
-**To Use a Custom Sender:**
+**Production Setup (Required for sending to teams):**
 
-Option A - Quick Setup (Using your verified email):
-```bash
-supabase secrets set FROM_EMAIL="studentclubs.bnmit@gmail.com"
-supabase functions deploy send-email
-```
+To send emails to actual team members, you MUST verify your own domain:
 
-Option B - Production Setup (Using your own domain):
-1. Verify your domain in Resend (https://resend.com/domains)
-2. Set the FROM_EMAIL secret:
+1. **Get a domain** (if you don't have one):
+   - Use a free subdomain service, or
+   - Purchase a domain from providers like Namecheap, GoDaddy, etc.
+
+2. **Verify your domain in Resend:**
+   - Go to [Resend Dashboard → Domains](https://resend.com/domains)
+   - Click "Add Domain"
+   - Add your domain (e.g., `prodathon.com`)
+   - Add the provided DNS records to your domain provider
+   - Wait for verification (usually 5-15 minutes)
+
+3. **Configure the sender email:**
    ```bash
    supabase secrets set FROM_EMAIL="Prodathon <noreply@yourdomain.com>"
-   ```
-3. Redeploy the function:
-   ```bash
    supabase functions deploy send-email
    ```
 
-**Resend Restrictions:**
-- With `onboarding@resend.dev`: Can only send to your own verified email
-- With verified domain: Can send to anyone
-- Free tier: 100 emails/day, 3,000 emails/month
+**Email Sending Restrictions:**
+
+| Sender Address | Can Send To | Use Case |
+|----------------|-------------|----------|
+| `onboarding@resend.dev` | Only `studentclubs.bnmit@gmail.com` | Testing only |
+| `name@yourdomain.com` | Anyone | Production |
+| ❌ `name@gmail.com` | **NOT ALLOWED** | Won't work |
+| ❌ `name@yahoo.com` | **NOT ALLOWED** | Won't work |
+
+**Free Tier Limits:** 100 emails/day, 3,000 emails/month
 
 ## Usage
 
