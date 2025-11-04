@@ -138,15 +138,15 @@ export default function PublicVoting() {
 
   const getTeamStatus = (team: Team) => {
     if (team.completed) {
-      return { status: "completed", label: "Completed", color: "bg-green-500", icon: CheckCircle };
+      return { status: "completed", label: "Completed", color: "bg-gray-500", icon: CheckCircle };
     }
     if (team.voting_enabled && !team.completed) {
-      return { status: "voting", label: "Vote Now!", color: "bg-gradient-to-r from-purple-500 to-pink-500", icon: Vote, pulsing: true };
+      return { status: "voting", label: "Vote Now!", color: "bg-primary", icon: Vote };
     }
     if (team.checked_in) {
       return { status: "presenting", label: "Presenting", color: "bg-yellow-500", icon: Clock };
     }
-    return { status: "waiting", label: "Waiting", color: "bg-gray-500", icon: Lock };
+    return { status: "waiting", label: "Waiting", color: "bg-gray-400", icon: Lock };
   };
 
   const handleVote = (teamId: string) => {
@@ -157,52 +157,55 @@ export default function PublicVoting() {
   const totalVotes = teams.reduce((sum, t) => sum + (t.vote_count || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20"></div>
-        <div className="relative z-10 container mx-auto px-4 py-12">
-          <div className="text-center space-y-4">
-            <h1 className="text-5xl font-bold text-white mb-2">
-              🏆 Prodathon Public Voting
-            </h1>
-            <p className="text-xl text-purple-200">
-              Vote for your favorite teams and help decide the winners!
-            </p>
-            <div className="flex justify-center gap-8 mt-6">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b bg-card backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <Trophy className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl font-bold text-primary">
+                Prodathon Public Voting
+              </h1>
+            </button>
+            <div className="flex gap-4 text-sm">
               <div className="text-center">
-                <div className="text-3xl font-bold text-white">{teams.length}</div>
-                <div className="text-sm text-purple-200">Total Teams</div>
+                <div className="text-2xl font-bold text-primary">{teams.length}</div>
+                <div className="text-xs text-muted-foreground">Total Teams</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-white">{votingTeams.length}</div>
-                <div className="text-sm text-purple-200">Voting Open</div>
+                <div className="text-2xl font-bold text-primary">{votingTeams.length}</div>
+                <div className="text-xs text-muted-foreground">Voting Open</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-white">{totalVotes}</div>
-                <div className="text-sm text-purple-200">Total Votes</div>
+                <div className="text-2xl font-bold text-primary">{totalVotes}</div>
+                <div className="text-xs text-muted-foreground">Total Votes</div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Filters */}
-      <div className="container mx-auto px-4 py-6">
-        <Card className="bg-white/10 backdrop-blur-lg border-white/20">
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8">
+        {/* Filters */}
+        <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search teams..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-white/20 border-white/30 text-white placeholder:text-gray-300"
+                  className="pl-10"
                 />
               </div>
               <Select value={filterTrack} onValueChange={setFilterTrack}>
-                <SelectTrigger className="bg-white/20 border-white/30 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="All Tracks" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,7 +218,7 @@ export default function PublicVoting() {
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-white/20 border-white/30 text-white">
+                <SelectTrigger>
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -229,60 +232,51 @@ export default function PublicVoting() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Team Grid */}
-      <div className="container mx-auto px-4 pb-12">
+        {/* Team Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTeams.map((team, index) => {
+          {filteredTeams.map((team) => {
             const statusInfo = getTeamStatus(team);
             const Icon = statusInfo.icon;
 
             return (
               <Card
                 key={team.id}
-                className={`group transition-all duration-300 hover:scale-105 hover:shadow-2xl bg-white/10 backdrop-blur-lg border-white/20 overflow-hidden ${
-                  statusInfo.pulsing ? 'animate-pulse-slow' : ''
-                }`}
-                style={{
-                  animationDelay: `${index * 50}ms`,
-                  animation: 'fadeInUp 0.5s ease-out forwards',
-                }}
+                className="hover:shadow-lg transition-shadow"
               >
-                <CardHeader className="relative">
-                  <div className={`absolute top-0 right-0 h-32 w-32 ${statusInfo.color} opacity-20 blur-3xl`}></div>
+                <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl font-bold text-white group-hover:text-purple-200 transition-colors">
+                      <CardTitle className="text-xl">
                         {team.name}
                       </CardTitle>
-                      <CardDescription className="text-purple-200 mt-1">
+                      <CardDescription className="mt-1">
                         {team.team_number}
                       </CardDescription>
                     </div>
-                    <Badge className={`${statusInfo.color} text-white border-0`}>
+                    <Badge className={`${statusInfo.color} text-white`}>
                       <Icon className="h-3 w-3 mr-1" />
                       {statusInfo.label}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm text-purple-200">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Trophy className="h-4 w-4" />
                     <span>{team.tracks.name}</span>
                   </div>
                   {team.college && (
-                    <div className="text-sm text-purple-200/80">
+                    <div className="text-sm text-muted-foreground">
                       🏫 {team.college}
                     </div>
                   )}
                   {team.members && team.members.length > 0 && (
-                    <div className="flex items-center gap-2 text-sm text-purple-200/80">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Users className="h-4 w-4" />
                       <span>{team.members.length} members</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-sm text-purple-200/80">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Vote className="h-4 w-4" />
                     <span>{team.vote_count || 0} votes</span>
                   </div>
@@ -290,18 +284,18 @@ export default function PublicVoting() {
                   {team.voting_enabled && !team.completed ? (
                     <Button
                       onClick={() => handleVote(team.id)}
-                      className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold shadow-lg"
+                      className="w-full"
                     >
                       <Vote className="h-4 w-4 mr-2" />
                       Vote Now!
                     </Button>
                   ) : team.completed ? (
-                    <Button disabled className="w-full bg-green-500/50 text-white">
+                    <Button disabled className="w-full" variant="outline">
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Voting Closed
                     </Button>
                   ) : (
-                    <Button disabled className="w-full bg-gray-500/50 text-white">
+                    <Button disabled className="w-full" variant="outline">
                       <Lock className="h-4 w-4 mr-2" />
                       Voting Not Open
                     </Button>
@@ -314,34 +308,10 @@ export default function PublicVoting() {
 
         {filteredTeams.length === 0 && (
           <div className="text-center py-12">
-            <div className="text-gray-400 text-lg">No teams found</div>
+            <div className="text-muted-foreground text-lg">No teams found</div>
           </div>
         )}
-      </div>
-
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes pulse-slow {
-          0%, 100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.8;
-          }
-        }
-        .animate-pulse-slow {
-          animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-      `}</style>
+      </main>
     </div>
   );
 }
