@@ -19,6 +19,10 @@ import {
   Search,
   Download,
   Keyboard,
+  Vote,
+  Play,
+  StopCircle,
+  Clock,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -32,8 +36,13 @@ interface Team {
   qr_token: string;
   checked_in: boolean;
   checked_in_at: string | null;
+  voting_enabled: boolean;
+  voting_opened_at: string | null;
+  completed: boolean;
+  completed_at: string | null;
   tracks: { name: string };
   rooms: { name: string };
+  vote_count?: number;
 }
 
 export default function TeamCheckIn() {
@@ -404,6 +413,61 @@ export default function TeamCheckIn() {
     }
   };
 
+  const handleEnableVoting = async (teamId: string) => {
+    try {
+      const { error } = await supabase
+        .from("teams")
+        .update({
+          voting_enabled: true,
+          voting_opened_at: new Date().toISOString(),
+        })
+        .eq("id", teamId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Voting Enabled",
+        description: "Public voting is now open for this team",
+      });
+      fetchTeams();
+    } catch (err: any) {
+      console.error("Enable voting error:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to enable voting",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCompleteTeam = async (teamId: string) => {
+    try {
+      const { error } = await supabase
+        .from("teams")
+        .update({
+          completed: true,
+          completed_at: new Date().toISOString(),
+          voting_enabled: false,
+        })
+        .eq("id", teamId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Team Completed",
+        description: "Voting has been closed for this team",
+      });
+      fetchTeams();
+    } catch (err: any) {
+      console.error("Complete team error:", err);
+      toast({
+        title: "Error",
+        description: err.message || "Failed to mark team as completed",
+        variant: "destructive",
+      });
+    }
+  };
+
   const exportCheckinList = () => {
     const csv = [
       ["Team Number", "Team Name", "Track", "Room", "Checked In", "Checked In At"].join(","),
@@ -742,8 +806,8 @@ export default function TeamCheckIn() {
                   <TableHead>Team Name</TableHead>
                   <TableHead>Track</TableHead>
                   <TableHead>Room</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Checked In At</TableHead>
+                  <TableHead>Check-in Status</TableHead>
+                  <TableHead>Voting Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -767,10 +831,30 @@ export default function TeamCheckIn() {
                         </Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {team.checked_in_at
-                        ? new Date(team.checked_in_at).toLocaleString()
-                        : "N/A"}
+                    <TableCell>
+                      <div className="flex flex-col gap-1">
+                        {team.completed ? (
+                          <Badge className="bg-gray-500">
+                            <StopCircle className="h-3 w-3 mr-1" />
+                            Completed
+                          </Badge>
+                        ) : team.voting_enabled ? (
+                          <Badge className="bg-purple-500">
+                            <Vote className="h-3 w-3 mr-1" />
+                            Voting Open
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-muted-foreground">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Not Open
+                          </Badge>
+                        )}
+                        {team.vote_count !== undefined && team.vote_count > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {team.vote_count} votes
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button
@@ -787,6 +871,27 @@ export default function TeamCheckIn() {
                       >
                         {team.checked_in ? "Undo" : "Check In"}
                       </Button>
+                      {team.checked_in && !team.completed && !team.voting_enabled && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEnableVoting(team.id)}
+                          className="bg-purple-500 text-white hover:bg-purple-600"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Enable Voting
+                        </Button>
+                      )}
+                      {team.voting_enabled && !team.completed && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCompleteTeam(team.id)}
+                        >
+                          <StopCircle className="h-3 w-3 mr-1" />
+                          Complete
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

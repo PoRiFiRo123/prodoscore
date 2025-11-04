@@ -11,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import ScrollToTop from "./components/ScrollToTop";
 import JudgeSnippetsPage from "./pages/JudgeSnippets";
 import TeamCheckin from "./pages/TeamCheckin";
+import PublicVoting from "./pages/PublicVoting";
+import VoteTeam from "./pages/VoteTeam";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,8 @@ const App = () => (
           <Route path="/judge" element={<Judge />} />
           <Route path="/judge/snippets" element={<JudgeSnippetsPage />} />
           <Route path="/team-checkin/:teamId" element={<TeamCheckin />} />
+          <Route path="/public-voting" element={<PublicVoting />} />
+          <Route path="/vote/:teamId" element={<VoteTeam />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
