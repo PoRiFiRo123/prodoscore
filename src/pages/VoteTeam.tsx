@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Trophy, Users, Building, Clock, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Trophy, Users, Building, Clock, Sparkles, CheckCircle2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Confetti from "react-confetti";
 import { useWindowSize } from "@/hooks/useWindowSize";
@@ -57,6 +57,17 @@ export default function VoteTeam() {
       fetchVoteCount();
     }
   }, [teamId]);
+
+  // Auto-redirect if voting is not available
+  useEffect(() => {
+    if (team && (!team.voting_enabled || team.completed)) {
+      const timer = setTimeout(() => {
+        navigate("/public-voting");
+      }, 3000); // Redirect after 3 seconds
+
+      return () => clearTimeout(timer);
+    }
+  }, [team, navigate]);
 
   useEffect(() => {
     if (team) {
@@ -225,15 +236,24 @@ export default function VoteTeam() {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-md">
           <CardHeader>
-            <CardTitle>Voting Not Available</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <XCircle className="h-6 w-6 text-yellow-500" />
+              Voting Not Available
+            </CardTitle>
             <CardDescription>
               Voting for this team is currently {team.completed ? "closed" : "not open yet"}.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="text-center py-4 bg-secondary rounded-lg">
+              <Clock className="h-8 w-8 mx-auto mb-2 text-muted-foreground animate-pulse" />
+              <p className="text-sm text-muted-foreground">
+                Redirecting to all teams in 3 seconds...
+              </p>
+            </div>
             <Button onClick={() => navigate("/public-voting")} variant="outline" className="w-full">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Teams
+              Go to Teams Now
             </Button>
           </CardContent>
         </Card>
