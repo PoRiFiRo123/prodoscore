@@ -68,7 +68,7 @@ export default function TeamCheckIn() {
     fetchTracks();
     fetchRooms();
 
-    // Subscribe to team updates
+    // Subscribe to team updates and public votes
     const channel = supabase
       .channel("team-checkin-updates")
       .on(
@@ -77,6 +77,17 @@ export default function TeamCheckIn() {
           event: "*",
           schema: "public",
           table: "teams",
+        },
+        () => {
+          fetchUserAndTeams();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "public_votes",
         },
         () => {
           fetchUserAndTeams();
@@ -124,7 +135,23 @@ export default function TeamCheckIn() {
       return;
     }
 
-    setTeams(data as Team[]);
+    // Fetch vote counts for each team (count unique sessions)
+    const teamsWithVotes = await Promise.all(
+      (data || []).map(async (team) => {
+        const { data: votes } = await supabase
+          .from("public_votes")
+          .select("session_id")
+          .eq("team_id", team.id);
+
+        // Count unique sessions
+        const uniqueSessions = new Set(votes?.map(v => v.session_id) || []);
+        const voteCount = uniqueSessions.size;
+
+        return { ...team, vote_count: voteCount };
+      })
+    );
+
+    setTeams(teamsWithVotes as Team[]);
   };
 
   const fetchTracks = async () => {
@@ -749,31 +776,44 @@ export default function TeamCheckIn() {
                       <h3 className="font-semibold text-sm truncate">{team.name}</h3>
                       <p className="text-xs text-muted-foreground">Team #{team.team_number}</p>
                     </div>
-                    {team.checked_in ? (
-                      <Badge className="bg-green-500 shrink-0 ml-2">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        <span className="text-xs">In</span>
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="shrink-0 ml-2">
-                        <XCircle className="h-3 w-3 mr-1" />
-                        <span className="text-xs">Out</span>
+                    <div className="flex flex-col gap-1 items-end shrink-0 ml-2">
+                      {team.checked_in ? (
+                        <Badge className="bg-green-500">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          <span className="text-xs">In</span>
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline">
+                          <XCircle className="h-3 w-3 mr-1" />
+                          <span className="text-xs">Out</span>
+                        </Badge>
+                      )}
+                      {team.completed ? (
+                        <Badge className="bg-gray-500 text-xs">
+                          <StopCircle className="h-2 w-2 mr-1" />
+                          Done
+                        </Badge>
+                      ) : team.voting_enabled ? (
+                        <Badge className="bg-primary text-xs">
+                          <Vote className="h-2 w-2 mr-1" />
+                          Voting
+                        </Badge>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 text-xs flex-wrap">
+                    <Badge variant="outline" className="text-xs">{team.tracks.name}</Badge>
+                    <Badge variant="secondary" className="text-xs">{team.rooms.name}</Badge>
+                    {team.vote_count !== undefined && team.vote_count > 0 && (
+                      <Badge variant="outline" className="text-xs">
+                        <Vote className="h-2 w-2 mr-1" />
+                        {team.vote_count} votes
                       </Badge>
                     )}
                   </div>
 
-                  <div className="flex gap-2 text-xs">
-                    <Badge variant="outline" className="text-xs">{team.tracks.name}</Badge>
-                    <Badge variant="secondary" className="text-xs">{team.rooms.name}</Badge>
-                  </div>
-
-                  {team.checked_in_at && (
-                    <p className="text-xs text-muted-foreground">
-                      Checked in: {new Date(team.checked_in_at).toLocaleString()}
-                    </p>
-                  )}
-
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     <Button
                       size="sm"
                       variant="outline"
@@ -792,6 +832,32 @@ export default function TeamCheckIn() {
                       <span className="text-xs">{team.checked_in ? "Undo" : "Check In"}</span>
                     </Button>
                   </div>
+
+                  {team.checked_in && !team.completed && (
+                    <div className="flex gap-2">
+                      {!team.voting_enabled ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEnableVoting(team.id)}
+                          className="w-full h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          <span className="text-xs">Enable Voting</span>
+                        </Button>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCompleteTeam(team.id)}
+                          className="w-full h-9"
+                        >
+                          <StopCircle className="h-3 w-3 mr-1" />
+                          <span className="text-xs">Complete</span>
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}

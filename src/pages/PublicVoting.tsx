@@ -72,15 +72,19 @@ export default function PublicVoting() {
       return;
     }
 
-    // Fetch vote counts for each team
+    // Fetch vote counts for each team (count unique sessions)
     const teamsWithVotes = await Promise.all(
       (data || []).map(async (team) => {
-        const { count } = await supabase
+        const { data: votes } = await supabase
           .from("public_votes")
-          .select("session_id", { count: 'exact', head: true })
+          .select("session_id")
           .eq("team_id", team.id);
 
-        return { ...team, vote_count: count || 0 };
+        // Count unique sessions
+        const uniqueSessions = new Set(votes?.map(v => v.session_id) || []);
+        const voteCount = uniqueSessions.size;
+
+        return { ...team, vote_count: voteCount };
       })
     );
 
@@ -132,6 +136,17 @@ export default function PublicVoting() {
           break;
       }
     }
+
+    // Sort: voting-enabled teams first, then by team_number
+    filtered.sort((a, b) => {
+      // Priority 1: Teams with voting enabled (and not completed) come first
+      const aVoting = a.voting_enabled && !a.completed ? 1 : 0;
+      const bVoting = b.voting_enabled && !b.completed ? 1 : 0;
+      if (aVoting !== bVoting) return bVoting - aVoting;
+
+      // Priority 2: Sort by team_number
+      return a.team_number.localeCompare(b.team_number);
+    });
 
     setFilteredTeams(filtered);
   };
