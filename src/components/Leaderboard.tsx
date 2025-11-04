@@ -12,6 +12,10 @@ interface Team {
   name: string;
   team_number: string;
   total_score: number;
+  judge_score: number;
+  public_score: number;
+  weighted_score: number;
+  public_votes_count: number;
   tracks: { name: string };
   rooms: { name: string };
 }
@@ -44,7 +48,7 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
     fetchRooms();
     fetchTeams();
 
-    // Set up real-time subscription
+    // Set up real-time subscription for both judge scores and public votes
     const channel = supabase
       .channel("leaderboard-changes")
       .on(
@@ -53,6 +57,17 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
           event: "*",
           schema: "public",
           table: "scores",
+        },
+        () => {
+          fetchTeams();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "public_votes",
         },
         () => {
           fetchTeams();
@@ -91,9 +106,9 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
     const { data } = await query;
 
     if (data) {
-      const teamsWithAverageScores = await Promise.all(
+      const teamsWithScores = await Promise.all(
         data.map(async (team) => {
-          // Fetch all scores for the team, including judge_id
+          // Fetch judge scores
           const { data: scoresData, error: scoresError } = await supabase
             .from("scores")
             .select("judge_id, score")
@@ -101,10 +116,9 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
 
           if (scoresError) {
             console.error("Error fetching scores for team", team.id, ":", scoresError);
-            return { ...team, total_score: 0 };
           }
 
-          // Calculate total score per judge
+          // Calculate judge average score
           const judgeScores = new Map<string, number>();
           scoresData?.forEach((s) => {
             if (s.judge_id) {
@@ -112,22 +126,42 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
             }
           });
 
-          // Sum the scores from each unique judge
           const totalSumOfJudgeScores = Array.from(judgeScores.values()).reduce((sum, score) => sum + score, 0);
           const numberOfJudgesWhoScored = judgeScores.size;
+          const judgeScore = numberOfJudgesWhoScored > 0 ? totalSumOfJudgeScores / numberOfJudgesWhoScored : 0;
 
-          const averageScore = numberOfJudgesWhoScored > 0 ? totalSumOfJudgeScores / numberOfJudgesWhoScored : 0;
+          // Fetch public votes
+          const { data: publicVotesData } = await supabase
+            .from("public_votes")
+            .select("score, session_id")
+            .eq("team_id", team.id);
+
+          // Calculate public vote average (average all scores)
+          const publicScores = publicVotesData || [];
+          const totalPublicScore = publicScores.reduce((sum, vote) => sum + Number(vote.score), 0);
+          const publicScore = publicScores.length > 0 ? totalPublicScore / publicScores.length : 0;
+
+          // Get unique voters count
+          const uniqueVoters = new Set(publicScores.map(v => v.session_id));
+          const publicVotesCount = uniqueVoters.size;
+
+          // Calculate weighted score: 90% judge + 10% public
+          const weightedScore = (judgeScore * 0.9) + (publicScore * 0.1);
 
           return {
             ...team,
-            total_score: averageScore,
+            total_score: judgeScore, // Keep for backward compatibility
+            judge_score: judgeScore,
+            public_score: publicScore,
+            weighted_score: weightedScore,
+            public_votes_count: publicVotesCount,
           };
         })
       );
 
-      // Sort by total_score (which is now average score)
-      teamsWithAverageScores.sort((a, b) => b.total_score - a.total_score);
-      setTeams(teamsWithAverageScores as unknown as Team[]);
+      // Sort by weighted_score
+      teamsWithScores.sort((a, b) => b.weighted_score - a.weighted_score);
+      setTeams(teamsWithScores as unknown as Team[]);
     }
   };
 
@@ -217,8 +251,9 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
                 <TableHead className="w-20">Rank</TableHead>
                 <TableHead>Team</TableHead>
                 <TableHead>Track</TableHead>
-                <TableHead>Room</TableHead>
-                <TableHead className="text-right">Score</TableHead>
+                <TableHead className="text-right">Judge Score (90%)</TableHead>
+                <TableHead className="text-right">Public Score (10%)</TableHead>
+                <TableHead className="text-right">Final Score</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -244,9 +279,24 @@ const Leaderboard = ({ isAdmin = false }: LeaderboardProps) => {
                     </div>
                   </TableCell>
                   <TableCell>{team.tracks.name}</TableCell>
-                  <TableCell>{team.rooms.name}</TableCell>
-                  <TableCell className="text-right font-bold text-lg">
-                    {team.total_score.toFixed(1)}
+                  <TableCell className="text-right">
+                    <div className="font-medium">{team.judge_score.toFixed(1)}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="font-medium">{team.public_score.toFixed(1)}</div>
+                    {team.public_votes_count > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {team.public_votes_count} votes
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="font-bold text-lg text-primary">
+                      {team.weighted_score.toFixed(1)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ({(team.judge_score * 0.9).toFixed(1)} + {(team.public_score * 0.1).toFixed(1)})
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
