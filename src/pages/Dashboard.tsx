@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog, Activity, Upload, FileText, Lock, MessageSquare, Menu, X, CheckCircle, Mail } from "lucide-react";
+import { LogOut, Trophy, Users, Target, DoorOpen, Award, LayoutDashboard, BarChart2, UserCog, Activity, Upload, FileText, Lock, MessageSquare, Menu, X, CheckCircle, Mail, Vote } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AdminTracks from "@/components/admin/AdminTracks";
 import AdminRooms from "@/components/admin/AdminRooms";
@@ -19,11 +19,13 @@ import AuditLog from "@/components/admin/AuditLog";
 import FinalizationWorkflow from "@/components/admin/FinalizationWorkflow";
 import TeamCheckIn from "@/components/admin/TeamCheckIn";
 import EmailManagement from "@/components/admin/EmailManagement";
+import VotingAnalytics from "@/components/admin/VotingAnalytics";
 
 const navItems = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "analytics", label: "Analytics", icon: BarChart2 },
   { value: "live", label: "Live", icon: Activity },
+  { value: "voting", label: "Voting", icon: Vote },
   { value: "checkin", label: "Check-in", icon: CheckCircle },
   { value: "emails", label: "Emails", icon: Mail },
   { value: "import-export", label: "Import/Export", icon: Upload },
@@ -133,6 +135,7 @@ const Dashboard = () => {
       case 'overview': return <AdminOverview />;
       case 'analytics': return <AdminAnalytics />;
       case 'live': return <LiveAnalytics />;
+      case 'voting': return <VotingAnalytics />;
       case 'checkin': return <TeamCheckIn />;
       case 'emails': return <EmailManagement />;
       case 'import-export': return <BulkImportExport />;

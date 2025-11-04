@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Gavel, Trophy, Users } from "lucide-react";
+import { Shield, Gavel, Trophy, Users, Vote } from "lucide-react";
 import PublicLeaderboard from "@/components/PublicLeaderboard";
 
 const Index = () => {
@@ -93,8 +93,47 @@ const Index = () => {
               </div>
             </div>
 
+            {/* Public Voting CTA */}
+            <div className="mt-20 mb-12">
+              <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-background to-background overflow-hidden relative">
+                <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+                <CardContent className="p-8 md:p-12 relative">
+                  <div className="flex flex-col md:flex-row items-center gap-8">
+                    <div className="flex-shrink-0">
+                      <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center backdrop-blur-sm border-2 border-primary/20">
+                        <Vote className="h-10 w-10 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1 text-center md:text-left">
+                      <h3 className="text-2xl md:text-3xl font-bold mb-2">
+                        <span className="text-primary">Cast Your Vote!</span>
+                      </h3>
+                      <p className="text-base md:text-lg text-muted-foreground mb-4">
+                        Join the audience voting and support your favorite teams. Your votes contribute 10% to the final scores.
+                      </p>
+                      <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                        <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Anonymous</span>
+                        <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Real-time Results</span>
+                        <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full">Live Teams</span>
+                      </div>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <Button
+                        onClick={() => navigate("/public-voting")}
+                        size="lg"
+                        className="text-lg px-8 shadow-lg hover:shadow-xl transition-all"
+                      >
+                        <Vote className="h-5 w-5 mr-2" />
+                        Vote Now
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Public Leaderboard Section */}
-            <div className="mt-20 mb-32">
+            <div className="mt-12 mb-32">
               <PublicLeaderboard />
             </div>
 
