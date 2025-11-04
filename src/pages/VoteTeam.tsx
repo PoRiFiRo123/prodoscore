@@ -214,19 +214,19 @@ export default function VoteTeam() {
 
   if (!team) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-xl">Loading...</div>
       </div>
     );
   }
 
   if (!team.voting_enabled || team.completed) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
-        <Card className="max-w-md bg-white/10 backdrop-blur-lg border-white/20">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md">
           <CardHeader>
-            <CardTitle className="text-white">Voting Not Available</CardTitle>
-            <CardDescription className="text-purple-200">
+            <CardTitle>Voting Not Available</CardTitle>
+            <CardDescription>
               Voting for this team is currently {team.completed ? "closed" : "not open yet"}.
             </CardDescription>
           </CardHeader>
@@ -243,23 +243,23 @@ export default function VoteTeam() {
 
   if (hasVoted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 flex items-center justify-center p-4">
-        <Card className="max-w-md bg-white/10 backdrop-blur-lg border-white/20">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="max-w-md">
           <CardHeader>
             <div className="flex items-center justify-center mb-4">
-              <CheckCircle2 className="h-16 w-16 text-green-400" />
+              <CheckCircle2 className="h-16 w-16 text-green-500" />
             </div>
-            <CardTitle className="text-white text-center">Already Voted!</CardTitle>
-            <CardDescription className="text-purple-200 text-center">
+            <CardTitle className="text-center">Already Voted!</CardTitle>
+            <CardDescription className="text-center">
               You've already voted for {team.name}. Thank you for your participation!
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="text-center py-4 bg-white/5 rounded-lg">
-              <div className="text-3xl font-bold text-white">{voteCount}</div>
-              <div className="text-sm text-purple-200">Total Votes for this team</div>
+            <div className="text-center py-4 bg-secondary rounded-lg">
+              <div className="text-3xl font-bold text-primary">{voteCount}</div>
+              <div className="text-sm text-muted-foreground">Total Votes for this team</div>
             </div>
-            <Button onClick={() => navigate("/public-voting")} className="w-full bg-gradient-to-r from-purple-500 to-pink-500">
+            <Button onClick={() => navigate("/public-voting")} className="w-full">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Vote for Other Teams
             </Button>
@@ -272,72 +272,75 @@ export default function VoteTeam() {
   const progress = calculateProgress();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-background">
       {showConfetti && <Confetti width={width} height={height} recycle={false} numberOfPieces={500} />}
 
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <Button
-          onClick={() => navigate("/public-voting")}
-          variant="ghost"
-          className="text-white hover:bg-white/10 mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Teams
-        </Button>
+      {/* Header */}
+      <header className="border-b bg-card backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <Button
+            onClick={() => navigate("/public-voting")}
+            variant="ghost"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Teams
+          </Button>
+        </div>
+      </header>
 
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Team Info Card */}
-        <Card className="bg-white/10 backdrop-blur-lg border-white/20 mb-6">
+        <Card className="mb-6">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
-                <CardTitle className="text-3xl font-bold text-white mb-2">
+                <CardTitle className="text-3xl font-bold mb-2">
                   {team.name}
                 </CardTitle>
-                <CardDescription className="text-lg text-purple-200">
+                <CardDescription className="text-lg">
                   {team.team_number}
                 </CardDescription>
               </div>
               <div className="text-right">
-                <div className="text-sm text-purple-200 mb-1">Total Votes</div>
-                <div className="text-2xl font-bold text-white">{voteCount}</div>
+                <div className="text-sm text-muted-foreground mb-1">Total Votes</div>
+                <div className="text-2xl font-bold text-primary">{voteCount}</div>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center gap-2 text-purple-200">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <Trophy className="h-5 w-5" />
                 <span>{team.tracks.name}</span>
               </div>
               {team.college && (
-                <div className="flex items-center gap-2 text-purple-200">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Building className="h-5 w-5" />
                   <span>{team.college}</span>
                 </div>
               )}
               {team.members && (
-                <div className="flex items-center gap-2 text-purple-200">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <Users className="h-5 w-5" />
                   <span>{team.members.length} members</span>
                 </div>
               )}
             </div>
             {team.problem_statement && (
-              <div className="mt-4 pt-4 border-t border-white/20">
-                <div className="text-sm font-semibold text-white mb-2">Problem Statement</div>
-                <div className="text-sm text-purple-200">{team.problem_statement}</div>
+              <div className="mt-4 pt-4 border-t">
+                <div className="text-sm font-semibold mb-2">Problem Statement</div>
+                <div className="text-sm text-muted-foreground">{team.problem_statement}</div>
               </div>
             )}
           </CardContent>
         </Card>
 
         {/* Progress */}
-        <Card className="bg-white/10 backdrop-blur-lg border-white/20 mb-6">
+        <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-white font-medium">Your Progress</span>
-              <span className="text-purple-200">{Math.round(progress)}%</span>
+              <span className="font-medium">Your Progress</span>
+              <span className="text-muted-foreground">{Math.round(progress)}%</span>
             </div>
             <Progress value={progress} className="h-2" />
           </CardContent>
@@ -353,15 +356,15 @@ export default function VoteTeam() {
             return (
               <Card
                 key={criterion.id}
-                className="bg-white/10 backdrop-blur-lg border-white/20 transition-all duration-300 hover:scale-[1.02]"
+                className="transition-all duration-300 hover:shadow-lg"
                 style={{
                   animationDelay: `${index * 100}ms`,
                   animation: 'fadeInUp 0.5s ease-out forwards',
                 }}
               >
                 <CardHeader>
-                  <CardTitle className="text-xl text-white flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-purple-400" />
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-primary" />
                     {criterion.name}
                   </CardTitle>
                 </CardHeader>
@@ -372,7 +375,7 @@ export default function VoteTeam() {
                       <div className={`text-4xl font-bold bg-gradient-to-r ${color} bg-clip-text text-transparent`}>
                         {score}
                       </div>
-                      <div className="text-sm text-purple-200">out of {criterion.max_score}</div>
+                      <div className="text-sm text-muted-foreground">out of {criterion.max_score}</div>
                     </div>
                   </div>
 
@@ -394,12 +397,12 @@ export default function VoteTeam() {
         </div>
 
         {/* Submit Button */}
-        <Card className="bg-white/10 backdrop-blur-lg border-white/20 mt-6 sticky bottom-4">
+        <Card className="mt-6 sticky bottom-4">
           <CardContent className="pt-6">
             <Button
               onClick={handleSubmit}
               disabled={submitting || progress < 100}
-              className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50"
+              className="w-full h-14 text-lg font-semibold"
             >
               {submitting ? (
                 <>
