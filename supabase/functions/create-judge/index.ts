@@ -107,7 +107,8 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       message: 'Judge created successfully',
       judgeId: userId,
-      email: email
+      email: email,
+      fullName: fullName
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,

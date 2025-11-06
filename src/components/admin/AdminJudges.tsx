@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, UserPlus, Edit, MoreVertical } from "lucide-react";
+import { Plus, Trash2, UserPlus, Edit, MoreVertical, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logAdminAction } from "@/lib/auditLog";
 import {
@@ -45,6 +45,7 @@ const AdminJudges = () => {
   const [newJudgeFullName, setNewJudgeFullName] = useState("");
   const [editingJudge, setEditingJudge] = useState<Judge | null>(null);
   const [deletingJudge, setDeletingJudge] = useState<Judge | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     fetchJudges();
@@ -53,6 +54,9 @@ const AdminJudges = () => {
 
   const fetchJudges = async () => {
     try {
+      setIsRefreshing(true);
+      console.log('Fetching judges...');
+      
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select(`
@@ -62,6 +66,8 @@ const AdminJudges = () => {
           user_roles!inner(role)
         `)
         .eq("user_roles.role", "judge");
+
+      console.log('Profiles query result:', { profiles, error: profilesError });
 
       if (profilesError) {
         throw profilesError;
@@ -76,7 +82,6 @@ const AdminJudges = () => {
               .eq("judge_id", profile.id);
 
             if (assignmentsError) {
-              // Log or handle individual assignment fetch errors if necessary
               console.error(`Error fetching assignments for judge ${profile.id}:`, assignmentsError);
             }
 
@@ -87,6 +92,7 @@ const AdminJudges = () => {
           })
         );
 
+        console.log('Judges with rooms:', judgesWithRooms);
         setJudges(judgesWithRooms as unknown as Judge[]);
       }
     } catch (error: any) {
@@ -96,6 +102,8 @@ const AdminJudges = () => {
         description: error.message || "Failed to load judge data. Please check RLS policies or network connection.",
         variant: "destructive",
       });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -121,6 +129,7 @@ const AdminJudges = () => {
     e.preventDefault();
 
     try {
+      console.log('Creating judge with name:', newJudgeFullName);
       const { data: { session } } = await supabase.auth.getSession();
 
       const response = await fetch('https://xrlzqtdhzgnjvmdycljs.supabase.co/functions/v1/create-judge', {
@@ -133,6 +142,7 @@ const AdminJudges = () => {
       });
 
       const data = await response.json();
+      console.log('Create judge response:', { status: response.status, data });
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to create judge');
@@ -140,20 +150,26 @@ const AdminJudges = () => {
 
       toast({
         title: "Judge created",
-        description: data.message || "New judge has been created successfully.",
+        description: `${data.fullName || 'Judge'} has been created successfully. Email: ${data.email}`,
       });
 
       if (data.judgeId) {
-        logAdminAction("JUDGE_CREATED", "judges", data.judgeId, null, { id: data.judgeId, full_name: newJudgeFullName });
+        logAdminAction("JUDGE_CREATED", "judges", data.judgeId, null, { 
+          id: data.judgeId, 
+          full_name: data.fullName,
+          email: data.email 
+        });
       }
 
-      fetchJudges();
+      // Refresh judges list
+      await fetchJudges();
       setCreateJudgeDialogOpen(false);
       setNewJudgeFullName("");
     } catch (error: any) {
+      console.error('Error creating judge:', error);
       toast({
         title: "Error creating judge",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     }
@@ -321,6 +337,14 @@ const AdminJudges = () => {
           <p className="text-muted-foreground">Manage judges and room assignments</p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="icon"
+            onClick={fetchJudges}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
           <Dialog open={assignRoomDialogOpen} onOpenChange={setAssignRoomDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="outline">
