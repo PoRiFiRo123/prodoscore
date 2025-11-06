@@ -32,12 +32,6 @@ Deno.serve(async (req) => {
   });
 
   try {
-    const { data: { session } } = await supabaseAdmin.auth.getSession();
-
-    // Call your existing create-judge logic here, e.g., the function that handles profile creation and role assignment.
-    // For this example, I'll simulate a basic response as the actual create-judge logic is not in this file.
-    // You would replace this with the actual logic to create the judge.
-
     const { fullName }: CreateJudgePayload = await req.json();
 
     if (!fullName) {
@@ -47,25 +41,60 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Here you would typically call your database to create the judge
-    // For now, let's assume a successful creation and return a dummy judgeId
-    const judgeId = `judge-${Date.now()}`;
-    
-    // In a real scenario, you'd integrate with your database to create the judge profile
-    // and assign the 'judge' role. For example:
-    // const { data: user, error: userError } = await supabaseAdmin.auth.admin.createUser({
-    //   email: 'generated-email@example.com', // or generate unique emails
-    //   password: 'temporary-password',
-    //   user_metadata: { full_name: fullName },
-    //   email_confirm: true,
-    // });
+    // Generate a unique email for the judge
+    const timestamp = Date.now();
+    const sanitizedName = fullName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const email = `judge-${sanitizedName}-${timestamp}@judges.prodoscore.local`;
 
-    // if (userError) { throw userError; }
+    // Generate a random password
+    const password = `Judge${timestamp}!`;
 
-    // await supabaseAdmin.from('profiles').update({ full_name: fullName }).eq('id', user.id);
-    // await supabaseAdmin.from('user_roles').insert({ user_id: user.id, role: 'judge' });
+    // Create auth user
+    const { data: user, error: userError } = await supabaseAdmin.auth.admin.createUser({
+      email: email,
+      password: password,
+      user_metadata: { full_name: fullName },
+      email_confirm: true,
+    });
 
-    return new Response(JSON.stringify({ message: 'Judge created successfully', judgeId: judgeId }), {
+    if (userError) {
+      throw new Error(`Failed to create auth user: ${userError.message}`);
+    }
+
+    if (!user || !user.user) {
+      throw new Error('User creation failed - no user returned');
+    }
+
+    const userId = user.user.id;
+
+    // Update profile with full name
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({ full_name: fullName, email: email })
+      .eq('id', userId);
+
+    if (profileError) {
+      // Rollback: delete the created user
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new Error(`Failed to update profile: ${profileError.message}`);
+    }
+
+    // Assign judge role
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({ user_id: userId, role: 'judge' });
+
+    if (roleError) {
+      // Rollback: delete the created user
+      await supabaseAdmin.auth.admin.deleteUser(userId);
+      throw new Error(`Failed to assign judge role: ${roleError.message}`);
+    }
+
+    return new Response(JSON.stringify({
+      message: 'Judge created successfully',
+      judgeId: userId,
+      email: email
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
