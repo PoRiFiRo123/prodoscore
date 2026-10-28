@@ -120,6 +120,10 @@ The repo includes a `vercel.json`, so it deploys to [Vercel](https://vercel.com)
 
 Issues and pull requests are welcome. If you run Prodoscore at your own event, I'd love to hear about it. Open an issue and tell me how it went.
 
+## License
+
+[MIT](LICENSE). Free to use, modify and run at your own events.
+
 ## Author
 
 Built by [Nishit R Kirani](https://github.com/PoRiFiRo123) for Prodathon at BNM Institute of Technology.
